@@ -1,0 +1,31 @@
+{
+  "status": 200,
+  "message": "Watch now for all languages",
+  "templates": {
+    "Watch now": {
+      "uk": "Watch now",
+      "pl": "Oglądaj",
+      "de": "Jetzt abspielen",
+      "at": "Jetzt abspielen",
+      "chde": "Jetzt abspielen",
+      "nl": "Bekijk nu",
+      "fr": "Voir la vidéo",
+      "chfr": "Voir la vidéo",
+      "es": "Ver video",
+      "pt": "Veja agora",
+      "it": "Guarda Video",
+      "dk": "Se nu",
+      "no": "Se nå",
+      "fi": "Katso nyt",
+      "se": "Titta nu",
+      "cz": "Přehrát nyní",
+      "sk": "Pozrieť video",
+      "hu": "Nézd meg",
+      "befr": "Voir la vidéo",
+      "benl": "Bekijk nu",
+      "ro": "Vezi acum",
+      "chit": "Guarda Video"
+    }
+  },
+  "execTime": "881.32ms"
+}
