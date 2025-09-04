@@ -1,112 +1,285 @@
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
-import { cron } from "@elysiajs/cron";
-import { initializeRoutes } from "./routes";
-import cacheService from "./services/cacheService";
+import cache, {
+  checkIfPrewarmIsDone,
+  prewarmStaticEndpoints,
+} from "./cacheService";
+import { getStaticTranslations } from "./googleAuth";
+import {
+  fetchSheetData,
+  getDataFromStaticSheet,
+  getStaticTranslationsBySlug,
+  getDynamicSheetCached,
+} from "./sheetsUtils";
+
+export const API_PREFIX = "/translations-api/v1";
+export let PREWARM_DONE = false;
 
 export const app = new Elysia({
-  prefix: "/api/v1",
+  prefix: API_PREFIX,
   normalize: true,
-});
-
-app.use(
-  swagger({
-    path: "/docs",
-    documentation: {
-      info: {
-        title: "Beliani Translations API",
-        version: "1.0.0",
+})
+  // automatic scalar documentation
+  .use(
+    swagger({
+      path: "/docs",
+      documentation: {
+        info: {
+          title: "Beliani Translations API",
+          version: "1.0.0",
+        },
       },
-    },
+    })
+  )
+
+  .get("/", () => {
+    return {
+      message: "Translations API",
+      docs: `https://${app.server?.hostname}:${app.server?.port}${API_PREFIX}/docs`,
+    };
   })
-);
 
-function formatTime(date: Date) {
-  return date.toLocaleTimeString("pl");
-}
+  .group("/static", (_static) =>
+    _static
+      .get("/", () => {
+        return {
+          message: "Root endpoint for static content",
+          docs: `https://${app.server?.hostname}:${app.server?.port}${API_PREFIX}/docs`,
+        };
+      })
 
-type CacheStats = {
-  totalTranslations: number;
-  hits: number;
-  misses: number;
-  hitRate: number;
-  apiLabel: string;
-};
+      .group("/header", (_header) =>
+        _header
 
-async function computeCacheStats(): Promise<CacheStats> {
-  const progress = await cacheService.getProgress();
-  const entries = progress.entries ?? [];
+          .get("/", async () => {
+            checkIfPrewarmIsDone();
+            return await getDataFromStaticSheet("HEADER", "header_all");
+          })
 
-  let total = 0;
-  for (const e of entries) {
-    try {
-      const v = await cacheService.get(e.key);
-      if (v && typeof v === "object") total += Object.keys(v).length;
-    } catch (_err) {}
-  }
+          .group("/lang", (_lang) =>
+            _lang
+              .get("/", async () => {
+                const cacheEntry = await cache.get<{ slug: string[] }>(
+                  "header_all"
+                );
 
-  const hits = entries.reduce((s: number, x: any) => s + (x.hits ?? 0), 0);
-  const misses = entries.reduce((s: number, x: any) => s + (x.misses ?? 0), 0);
-  const hitRate = hits + misses > 0 ? (hits / (hits + misses)) * 100 : 100;
+                return {
+                  message: "Available language slugs",
+                  data: cacheEntry?.slug ?? "none",
+                };
+              })
 
-  const apiLabel = entries.find((x: any) => x.key.includes("templates"))
-    ? "sheets/TEMPLATES"
-    : entries.length > 0
-    ? entries[0].key.replace(/:/g, "/")
-    : "-/-";
-
-  return {
-    totalTranslations: total,
-    hits,
-    misses,
-    hitRate,
-    apiLabel,
-  };
-}
-
-function formatCacheLog(date: Date, stats: CacheStats) {
-  return `🎯 cache refresh ${formatTime(date)} - ${
-    stats.totalTranslations
-  } translations | API: ${stats.apiLabel} | Hit rate: ${stats.hitRate.toFixed(
-    1
-  )}%`;
-}
-
-app.use(
-  cron({
-    name: "log-cache-progress",
-    // run at 0 seconds every 5 minutes
-    pattern: "0 */5 * * * *",
-    async run() {
-      const now = new Date();
-      try {
-        const stats = await computeCacheStats();
-        console.log(
-          formatCacheLog(now, stats).replace(
-            "🎯 | cache refresh",
-            "📌 | cache stats"
+              .group("/:language_slug", (_langSlug) =>
+                _langSlug.get("/", async ({ params: { language_slug } }) => {
+                  return await getStaticTranslationsBySlug(
+                    "header_all",
+                    language_slug
+                  );
+                })
+              )
           )
-        );
-      } catch (e) {
-        console.log(
-          `📌 | cache stats ${formatTime(
-            now
-          )} - 0 translations | API: -/- | Hit rate: 100%`
-        );
-      }
-    },
-  })
-);
+      )
 
-initializeRoutes(app);
+      .group("/footer", (_footer) =>
+        _footer
 
-app.listen(3000);
+          .get("/", async () => {
+            checkIfPrewarmIsDone();
+            return await getDataFromStaticSheet("FOOTER", "footer_all");
+          })
+
+          .group("/lang", (_lang) =>
+            _lang
+              .get("/", async () => {
+                const cacheEntry = await cache.get<{ slug: string[] }>(
+                  "footer_all"
+                );
+
+                return {
+                  message: "Available language slugs",
+                  data: cacheEntry?.slug ?? "none",
+                };
+              })
+
+              .group("/:language_slug", (_langSlug) =>
+                _langSlug.get("/", async ({ params: { language_slug } }) => {
+                  return await getStaticTranslationsBySlug(
+                    "footer_all",
+                    language_slug
+                  );
+                })
+              )
+          )
+      )
+
+      .group("/templates", (_templates) =>
+        _templates
+
+          .get("/", async () => {
+            checkIfPrewarmIsDone();
+            return await getDataFromStaticSheet("TEMPLATES", "templates_all");
+          })
+
+          .group("/lang", (_lang) =>
+            _lang
+              .get("/", async () => {
+                const cacheEntry = await cache.get<{ slug: string[] }>(
+                  "templates_all"
+                );
+
+                return {
+                  message: "Available language slugs",
+                  data: cacheEntry?.slug ?? "none",
+                };
+              })
+
+              .group("/:language_slug", (_langSlug) =>
+                _langSlug.get("/", async ({ params: { language_slug } }) => {
+                  return await getStaticTranslationsBySlug(
+                    "templates_all",
+                    language_slug
+                  );
+                })
+              )
+          )
+      )
+
+      .group("/category_titles", (_category_titles) =>
+        _category_titles
+
+          .get("/", async () => {
+            checkIfPrewarmIsDone();
+            return await getDataFromStaticSheet(
+              "CATEGORY_TITLES",
+              "category_titles_all"
+            );
+          })
+
+          .group("/lang", (_lang) =>
+            _lang
+              .get("/", async () => {
+                const cacheEntry = await cache.get<{ slug: string[] }>(
+                  "category_titles_all"
+                );
+
+                return {
+                  message: "Available language slugs",
+                  data: cacheEntry?.slug ?? "none",
+                };
+              })
+
+              .group("/:language_slug", (_langSlug) =>
+                _langSlug.get("/", async ({ params: { language_slug } }) => {
+                  return await getStaticTranslationsBySlug(
+                    "category_titles_all",
+                    language_slug
+                  );
+                })
+              )
+          )
+      )
+
+      .group("/category_links", (_category_links) =>
+        _category_links
+
+          .get("/", async () => {
+            checkIfPrewarmIsDone();
+            return await getDataFromStaticSheet(
+              "CATEGORY_LINKS",
+              "category_links_all"
+            );
+          })
+
+          .group("/lang", (_lang) =>
+            _lang
+              .get("/", async () => {
+                const cacheEntry = await cache.get<{ slug: string[] }>(
+                  "category_links_all"
+                );
+
+                return {
+                  message: "Available language slugs",
+                  data: cacheEntry?.slug ?? "none",
+                };
+              })
+
+              .group("/:language_slug", (_langSlug) =>
+                _langSlug.get("/", async ({ params: { language_slug } }) => {
+                  return await getStaticTranslationsBySlug(
+                    "category_links_all",
+                    language_slug
+                  );
+                })
+              )
+          )
+      )
+  )
+
+  .group("/dynamic", (_dynamic) =>
+    _dynamic
+      .get("/", () => {
+        return {
+          message: "Root endpoint for dynamic content",
+          docs: `https://${app.server?.hostname}:${app.server?.port}${API_PREFIX}/docs`,
+        };
+      })
+
+      // /dynamic/:sheet_tab -> returns filtered headers & full sheet (cached)
+      .group("/:sheet_tab", (_sheet_tab) =>
+        _sheet_tab
+          .get("/", async ({ params: { sheet_tab } }) => {
+            const envelope = await getDynamicSheetCached(sheet_tab);
+
+            return {
+              message: (envelope as any).message ?? `Fetching dynamic translations from tab '${sheet_tab}'`,
+              data: (envelope as any).data ?? envelope,
+              dataOrigin: (envelope as any).dataOrigin,
+              executionTime: (envelope as any).executionTime,
+            };
+          })
+
+          // /dynamic/:sheet_tab/:range -> returns filtered headers for given range
+          .get("/:range", async ({ params: { sheet_tab, range } }) => {
+            // range operates on ROWS (1-based). Return mapping: HEADER -> [values...]
+            const envelope = await getDynamicSheetCached(sheet_tab);
+            const sheet = (envelope as any).data ?? envelope;
+
+            const isRangeValid = /^\d+:\d+$|^\d+$/.test(range);
+            if (!isRangeValid) {
+              return {
+                message: `Error! Invalid range format! Use "start:end" or "index" format.`,
+              };
+            }
+
+            const [startStr, endStr] = range.split(":");
+            const start = parseInt(startStr, 10) - 2;
+            const end = endStr ? parseInt(endStr, 10) - 2 : start;
+
+            const result: Record<string, any[]> = {};
+
+            // For each header (except slug), slice its values array by row range
+            for (const [header, values] of Object.entries(sheet)) {
+              if (header === "slug") continue;
+              if (!Array.isArray(values)) continue;
+
+              // slice safely even if end is out of bounds
+              result[header] = values
+                .slice(start, end + 1)
+                .map((v) => (v === undefined ? null : v));
+            }
+
+            return {
+              message: `Fetching dynamic translations from tab '${sheet_tab}'`,
+              data: result,
+            };
+          })
+      )
+  )
+
+  .listen(3000);
 
 console.log(
-  ` - -`.repeat(30),
-  `\n`,
-  ` `.repeat(30),
-  ` 🔥 API is running at http://${app.server?.hostname}:${app.server?.port}`,
-  `\n`,
-  `- - `.repeat(30)
+  `\n🔥 API is running at http://${app.server?.hostname}:${app.server?.port}${API_PREFIX}\n`
 );
+
+prewarmStaticEndpoints();
