@@ -33,7 +33,7 @@ export async function fetchSheetData(spreadsheet: string, sheetName: string) {
 
 export async function getDataFromStaticSheet(
   sheetName: string,
-  cacheKey: string
+  cacheKey: string,
 ) {
   let start_time = Date.now();
 
@@ -52,16 +52,16 @@ export async function getDataFromStaticSheet(
         const data = await fetchSheetData("STATIC", sheetName);
         console.log(
           `[${formatTime(
-            new Date()
-          )}] 🎯 | Refreshed cache entry: '${cacheKey}'`
+            new Date(),
+          )}] 🎯 | Refreshed cache entry: '${cacheKey}'`,
         );
         return data;
       })
       .catch((err) =>
         console.error(
           `[${formatTime(new Date())}] Error refreshing cache '${cacheKey}':`,
-          err
-        )
+          err,
+        ),
       );
 
     return {
@@ -79,7 +79,7 @@ export async function getDataFromStaticSheet(
     const data = await cache.wrap(cacheKey, async () => {
       const result = await fetchSheetData("STATIC", sheetName);
       console.log(
-        `[${formatTime(new Date())}] 🎯 | New cache entry: '${cacheKey}'`
+        `[${formatTime(new Date())}] 🎯 | New cache entry: '${cacheKey}'`,
       );
       return result;
     });
@@ -93,8 +93,8 @@ export async function getDataFromStaticSheet(
   } catch (err) {
     console.error(
       `[${formatTime(
-        new Date()
-      )}] 🚒 | Prewarm failed for: '${cacheKey}', error: ${String(err)}`
+        new Date(),
+      )}] 🚒 | Prewarm failed for: '${cacheKey}', error: ${String(err)}`,
     );
     return {
       message: `Error fetching data.`,
@@ -105,7 +105,7 @@ export async function getDataFromStaticSheet(
 
 export async function getStaticTranslationsBySlug(
   cacheKey: string,
-  languageSlug: string
+  languageSlug: string,
 ) {
   checkIfPrewarmIsDone();
 
@@ -136,17 +136,17 @@ export async function getStaticTranslationsBySlug(
         const result = await fetchSheetData("STATIC", sheetName);
         console.log(
           `[${formatTime(
-            new Date()
-          )}] 🎯 | Refilled cache entry: '${cacheKey}' via sheet '${sheetName}'`
+            new Date(),
+          )}] 🎯 | Refilled cache entry: '${cacheKey}' via sheet '${sheetName}'`,
         );
         return result;
       });
     } catch (err) {
       console.error(
         `[${formatTime(
-          new Date()
+          new Date(),
         )}] 🚒 | Failed to refresh cache '${cacheKey}':`,
-        err
+        err,
       );
       return {
         message: `Error fetching data for '${cacheKey}'`,
@@ -240,18 +240,18 @@ export async function getDynamicSheetCached(sheetTab: string) {
         const refreshed = await fetchSheetData("DYNAMIC", sheetTab);
         console.log(
           `[${formatTime(
-            new Date()
-          )}] 🎯 | Refreshed dynamic cache: '${cacheKey}'`
+            new Date(),
+          )}] 🎯 | Refreshed dynamic cache: '${cacheKey}'`,
         );
         return refreshed;
       })
       .catch((err) =>
         console.error(
           `[${formatTime(
-            new Date()
+            new Date(),
           )}] Error refreshing dynamic cache '${cacheKey}':`,
-          err
-        )
+          err,
+        ),
       );
 
     return {
@@ -268,8 +268,8 @@ export async function getDynamicSheetCached(sheetTab: string) {
       const result = await fetchSheetData("DYNAMIC", sheetTab);
       console.log(
         `[${formatTime(
-          new Date()
-        )}] 🎯 | New dynamic cache entry: '${cacheKey}'`
+          new Date(),
+        )}] 🎯 | New dynamic cache entry: '${cacheKey}'`,
       );
       return result;
     });
@@ -283,9 +283,9 @@ export async function getDynamicSheetCached(sheetTab: string) {
   } catch (err) {
     console.error(
       `[${formatTime(
-        new Date()
+        new Date(),
       )}] 🚒 | Failed to populate dynamic cache '${cacheKey}':`,
-      err
+      err,
     );
     throw err;
   }
@@ -293,7 +293,7 @@ export async function getDynamicSheetCached(sheetTab: string) {
 
 export async function getDynamicTranslationsBySlug(
   sheetTab: string,
-  languageSlug: string
+  languageSlug: string,
 ) {
   checkIfPrewarmIsDone();
 
