@@ -44,5 +44,6 @@ Quick steps:
    - runs `pm2 startOrReload ecosystem.config.js`
 
 Notes:
+
 - `ecosystem.config.js` uses `bun` as the interpreter. Change to `node` if you prefer compiled JS.
 - You can instead configure a GitHub webhook and a lightweight webhook handler on the server to call `./deploy.sh` on push.

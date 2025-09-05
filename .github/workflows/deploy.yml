@@ -2,24 +2,19 @@ name: Deploy to AlmaLinux
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, almalinux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run remote deploy script over SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
-          script: |
-            cd ${{ secrets.DEPLOY_PATH }}
-            git fetch --all
-            git reset --hard origin/main
-            ./deploy.sh main
+      - name: Run deploy script on server (local runner)
+        run: |
+          cd "${{ secrets.DEPLOY_PATH }}"
+          git fetch --all
+          git reset --hard origin/main
+          # uruchom jako dedykowany użytkownik deploy (wymaga sudoers wpisu)
+          sudo -u translations_api_deploy /bin/bash "${{ secrets.DEPLOY_PATH }}/deploy.sh" main

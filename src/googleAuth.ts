@@ -10,12 +10,12 @@ const xlsxAccount = new JWT({
 
 const STATIC_TRANSLATIONS = new GoogleSpreadsheet(
   "1Y9blxN4paEV05s6AvdWmH5fBELTUvDz3ax5skmgVrsQ",
-  xlsxAccount
+  xlsxAccount,
 );
 
 const DYNAMIC_TRANSLATIONS = new GoogleSpreadsheet(
   "1djnjfhsFX4-Fghv5cQU_UNYaEhVL9Ban4VUqIfHsWdc",
-  xlsxAccount
+  xlsxAccount,
 );
 
 export async function getStaticTranslations() {

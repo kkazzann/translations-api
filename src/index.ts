@@ -29,7 +29,7 @@ export const app = new Elysia({
           version: "1.0.0",
         },
       },
-    })
+    }),
   )
 
   .get("/", () => {
@@ -60,7 +60,7 @@ export const app = new Elysia({
             _lang
               .get("/", async () => {
                 const cacheEntry = await cache.get<{ slug: string[] }>(
-                  "header_all"
+                  "header_all",
                 );
 
                 return {
@@ -73,11 +73,11 @@ export const app = new Elysia({
                 _langSlug.get("/", async ({ params: { language_slug } }) => {
                   return await getStaticTranslationsBySlug(
                     "header_all",
-                    language_slug
+                    language_slug,
                   );
-                })
-              )
-          )
+                }),
+              ),
+          ),
       )
 
       .group("/footer", (_footer) =>
@@ -92,7 +92,7 @@ export const app = new Elysia({
             _lang
               .get("/", async () => {
                 const cacheEntry = await cache.get<{ slug: string[] }>(
-                  "footer_all"
+                  "footer_all",
                 );
 
                 return {
@@ -105,11 +105,11 @@ export const app = new Elysia({
                 _langSlug.get("/", async ({ params: { language_slug } }) => {
                   return await getStaticTranslationsBySlug(
                     "footer_all",
-                    language_slug
+                    language_slug,
                   );
-                })
-              )
-          )
+                }),
+              ),
+          ),
       )
 
       .group("/templates", (_templates) =>
@@ -124,7 +124,7 @@ export const app = new Elysia({
             _lang
               .get("/", async () => {
                 const cacheEntry = await cache.get<{ slug: string[] }>(
-                  "templates_all"
+                  "templates_all",
                 );
 
                 return {
@@ -137,11 +137,11 @@ export const app = new Elysia({
                 _langSlug.get("/", async ({ params: { language_slug } }) => {
                   return await getStaticTranslationsBySlug(
                     "templates_all",
-                    language_slug
+                    language_slug,
                   );
-                })
-              )
-          )
+                }),
+              ),
+          ),
       )
 
       .group("/category_titles", (_category_titles) =>
@@ -151,7 +151,7 @@ export const app = new Elysia({
             checkIfPrewarmIsDone();
             return await getDataFromStaticSheet(
               "CATEGORY_TITLES",
-              "category_titles_all"
+              "category_titles_all",
             );
           })
 
@@ -159,7 +159,7 @@ export const app = new Elysia({
             _lang
               .get("/", async () => {
                 const cacheEntry = await cache.get<{ slug: string[] }>(
-                  "category_titles_all"
+                  "category_titles_all",
                 );
 
                 return {
@@ -172,11 +172,11 @@ export const app = new Elysia({
                 _langSlug.get("/", async ({ params: { language_slug } }) => {
                   return await getStaticTranslationsBySlug(
                     "category_titles_all",
-                    language_slug
+                    language_slug,
                   );
-                })
-              )
-          )
+                }),
+              ),
+          ),
       )
 
       .group("/category_links", (_category_links) =>
@@ -186,7 +186,7 @@ export const app = new Elysia({
             checkIfPrewarmIsDone();
             return await getDataFromStaticSheet(
               "CATEGORY_LINKS",
-              "category_links_all"
+              "category_links_all",
             );
           })
 
@@ -194,7 +194,7 @@ export const app = new Elysia({
             _lang
               .get("/", async () => {
                 const cacheEntry = await cache.get<{ slug: string[] }>(
-                  "category_links_all"
+                  "category_links_all",
                 );
 
                 return {
@@ -207,12 +207,12 @@ export const app = new Elysia({
                 _langSlug.get("/", async ({ params: { language_slug } }) => {
                   return await getStaticTranslationsBySlug(
                     "category_links_all",
-                    language_slug
+                    language_slug,
                   );
-                })
-              )
-          )
-      )
+                }),
+              ),
+          ),
+      ),
   )
 
   .group("/dynamic", (_dynamic) =>
@@ -231,7 +231,9 @@ export const app = new Elysia({
             const envelope = await getDynamicSheetCached(sheet_tab);
 
             return {
-              message: (envelope as any).message ?? `Fetching dynamic translations from tab '${sheet_tab}'`,
+              message:
+                (envelope as any).message ??
+                `Fetching dynamic translations from tab '${sheet_tab}'`,
               data: (envelope as any).data ?? envelope,
               dataOrigin: (envelope as any).dataOrigin,
               executionTime: (envelope as any).executionTime,
@@ -272,14 +274,14 @@ export const app = new Elysia({
               message: `Fetching dynamic translations from tab '${sheet_tab}'`,
               data: result,
             };
-          })
-      )
+          }),
+      ),
   )
 
   .listen(3000);
 
 console.log(
-  `\n🔥 API is running at http://${app.server?.hostname}:${app.server?.port}${API_PREFIX}\n`
+  `\n🔥 API is running at http://${app.server?.hostname}:${app.server?.port}${API_PREFIX}\n`,
 );
 
 prewarmStaticEndpoints();

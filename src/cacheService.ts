@@ -15,7 +15,7 @@ export function checkIfPrewarmIsDone() {
       JSON.stringify({
         status: 500,
         message: "Static content is being prewarmed, please try again shortly.",
-      })
+      }),
     );
   }
 }
@@ -32,7 +32,7 @@ export async function prewarmStaticEndpoints() {
   PREWARM_DONE = true;
 
   console.log(
-    "Prewarming static endpoints complete. API is ready to serve requests!"
+    "Prewarming static endpoints complete. API is ready to serve requests!",
   );
 }
 
