@@ -8,6 +8,7 @@ import {
   getStaticTranslationsBySlug,
   getDynamicSheetCached,
 } from './sheetsUtils';
+import { getLocalLanIp } from './networkUtils';
 
 export const API_PREFIX = '/translations-api/v1';
 export let PREWARM_DONE = false;
@@ -32,7 +33,7 @@ export const app = new Elysia({
   .get('/', () => {
     return {
       message: 'Translations API',
-      docs: `https://${app.server?.hostname}:${app.server?.port}${API_PREFIX}/docs`,
+      docs: `https://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
     };
   })
 
@@ -41,7 +42,7 @@ export const app = new Elysia({
       .get('/', () => {
         return {
           message: 'Root endpoint for static content',
-          docs: `https://${app.server?.hostname}:${app.server?.port}${API_PREFIX}/docs`,
+          docs: `https://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
         };
       })
 
@@ -186,7 +187,7 @@ export const app = new Elysia({
       .get('/', () => {
         return {
           message: 'Root endpoint for dynamic content',
-          docs: `https://${app.server?.hostname}:${app.server?.port}${API_PREFIX}/docs`,
+          docs: `https://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
         };
       })
 
@@ -242,12 +243,15 @@ export const app = new Elysia({
             };
           })
       )
-  )
+  );
 
-  .listen(3000);
+// Bind to all interfaces so the server is reachable from the LAN.
+// Elysia's listen accepts an options object where we can set hostname to 0.0.0.0
+// which means "listen on all network interfaces".
+app.listen({ port: 3000, hostname: '0.0.0.0' });
 
-console.log(
-  `\n🔥 API is running at http://${app.server?.hostname}:${app.server?.port}${API_PREFIX}\n`
-);
+const localIp = getLocalLanIp();
+
+console.log(`\n🔥 API is running at http://${localIp}:${app.server?.port}${API_PREFIX}\n`);
 
 prewarmStaticEndpoints();
