@@ -5,11 +5,11 @@
 module.exports = {
   apps: [
     {
-      name: "translations-api",
-      script: "src/index.ts",
-      interpreter: "bun", // set to 'node' if running compiled JS
+      name: 'translations-api',
+      script: 'src/index.ts',
+      interpreter: 'bun', // set to 'node' if running compiled JS
       env: {
-        NODE_ENV: "production",
+        NODE_ENV: 'production',
       },
       watch: false,
     },

@@ -1,16 +1,16 @@
-import { PREWARM_DONE } from ".";
-import cache, { checkIfPrewarmIsDone } from "./cacheService";
-import { getStaticTranslations, getDynamicTranslations } from "./googleAuth";
-import { formatTime } from "./timeUtils";
+import { PREWARM_DONE } from '.';
+import cache, { checkIfPrewarmIsDone } from './cacheService';
+import { getStaticTranslations, getDynamicTranslations } from './googleAuth';
+import { formatTime } from './timeUtils';
 
 export async function fetchSheetData(spreadsheet: string, sheetName: string) {
   let document;
 
   switch (spreadsheet) {
-    case "STATIC":
+    case 'STATIC':
       document = await getStaticTranslations();
       break;
-    case "DYNAMIC":
+    case 'DYNAMIC':
       document = await getDynamicTranslations();
       break;
     default:
@@ -25,16 +25,12 @@ export async function fetchSheetData(spreadsheet: string, sheetName: string) {
   const rows = await sheet.getRows();
   const result: { [key: string]: any } = {};
 
-  for (const header of headers)
-    result[header] = rows.map((row) => row.get(header));
+  for (const header of headers) result[header] = rows.map((row) => row.get(header));
 
   return result;
 }
 
-export async function getDataFromStaticSheet(
-  sheetName: string,
-  cacheKey: string,
-) {
+export async function getDataFromStaticSheet(sheetName: string, cacheKey: string) {
   let start_time = Date.now();
 
   // 🎯 CACHE HIT ---------
@@ -49,24 +45,17 @@ export async function getDataFromStaticSheet(
     // cache.wrap will only run the fetch function in background when remaining TTL < refreshThreshold.
     cache
       .wrap(cacheKey, async () => {
-        const data = await fetchSheetData("STATIC", sheetName);
-        console.log(
-          `[${formatTime(
-            new Date(),
-          )}] 🎯 | Refreshed cache entry: '${cacheKey}'`,
-        );
+        const data = await fetchSheetData('STATIC', sheetName);
+        console.log(`[${formatTime(new Date())}] 🎯 | Refreshed cache entry: '${cacheKey}'`);
         return data;
       })
       .catch((err) =>
-        console.error(
-          `[${formatTime(new Date())}] Error refreshing cache '${cacheKey}':`,
-          err,
-        ),
+        console.error(`[${formatTime(new Date())}] Error refreshing cache '${cacheKey}':`, err)
       );
 
     return {
       message: `Cache hit - '${cacheKey}'`,
-      dataOrigin: "cache",
+      dataOrigin: 'cache',
       executionTime: `${Date.now() - start_time}ms`,
       data: cached_values,
     };
@@ -77,24 +66,20 @@ export async function getDataFromStaticSheet(
   // gets the data synchronously).
   try {
     const data = await cache.wrap(cacheKey, async () => {
-      const result = await fetchSheetData("STATIC", sheetName);
-      console.log(
-        `[${formatTime(new Date())}] 🎯 | New cache entry: '${cacheKey}'`,
-      );
+      const result = await fetchSheetData('STATIC', sheetName);
+      console.log(`[${formatTime(new Date())}] 🎯 | New cache entry: '${cacheKey}'`);
       return result;
     });
 
     return {
       message: `New cache entry: '${cacheKey}'`,
-      dataOrigin: "googleAPI",
+      dataOrigin: 'googleAPI',
       executionTime: `${Date.now() - start_time}ms`,
       data: data,
     };
   } catch (err) {
     console.error(
-      `[${formatTime(
-        new Date(),
-      )}] 🚒 | Prewarm failed for: '${cacheKey}', error: ${String(err)}`,
+      `[${formatTime(new Date())}] 🚒 | Prewarm failed for: '${cacheKey}', error: ${String(err)}`
     );
     return {
       message: `Error fetching data.`,
@@ -103,10 +88,7 @@ export async function getDataFromStaticSheet(
   }
 }
 
-export async function getStaticTranslationsBySlug(
-  cacheKey: string,
-  languageSlug: string,
-) {
+export async function getStaticTranslationsBySlug(cacheKey: string, languageSlug: string) {
   checkIfPrewarmIsDone();
 
   // Try to read cache; if missing (TTL expired), refresh it synchronously
@@ -115,11 +97,11 @@ export async function getStaticTranslationsBySlug(
   if (!cacheEntry) {
     // Map common cache keys to sheet names so we can fetch the sheet when missing
     const keyToSheetMap: Record<string, string> = {
-      header_all: "HEADER",
-      footer_all: "FOOTER",
-      templates_all: "TEMPLATES",
-      category_links_all: "CATEGORY_LINKS",
-      category_titles_all: "CATEGORY_TITLES",
+      header_all: 'HEADER',
+      footer_all: 'FOOTER',
+      templates_all: 'TEMPLATES',
+      category_links_all: 'CATEGORY_LINKS',
+      category_titles_all: 'CATEGORY_TITLES',
     };
 
     const sheetName = keyToSheetMap[cacheKey];
@@ -133,21 +115,16 @@ export async function getStaticTranslationsBySlug(
 
     try {
       cacheEntry = await cache.wrap(cacheKey, async () => {
-        const result = await fetchSheetData("STATIC", sheetName);
+        const result = await fetchSheetData('STATIC', sheetName);
         console.log(
           `[${formatTime(
-            new Date(),
-          )}] 🎯 | Refilled cache entry: '${cacheKey}' via sheet '${sheetName}'`,
+            new Date()
+          )}] 🎯 | Refilled cache entry: '${cacheKey}' via sheet '${sheetName}'`
         );
         return result;
       });
     } catch (err) {
-      console.error(
-        `[${formatTime(
-          new Date(),
-        )}] 🚒 | Failed to refresh cache '${cacheKey}':`,
-        err,
-      );
+      console.error(`[${formatTime(new Date())}] 🚒 | Failed to refresh cache '${cacheKey}':`, err);
       return {
         message: `Error fetching data for '${cacheKey}'`,
         error: String(err),
@@ -188,35 +165,35 @@ export async function getStaticTranslationsBySlug(
 }
 
 const ALLOWED_DYNAMIC_HEADERS = [
-  "UK",
-  "PL",
-  "DE",
-  "AT",
-  "CH",
-  "NL",
-  "FR",
-  "CHFR",
-  "ES",
-  "PT",
-  "IT",
-  "DK",
-  "NO",
-  "FI",
-  "SE",
-  "CZ",
-  "SK",
-  "HU",
-  "BEFR",
-  "BENL",
-  "RO",
-  "CHIT",
+  'UK',
+  'PL',
+  'DE',
+  'AT',
+  'CH',
+  'NL',
+  'FR',
+  'CHFR',
+  'ES',
+  'PT',
+  'IT',
+  'DK',
+  'NO',
+  'FI',
+  'SE',
+  'CZ',
+  'SK',
+  'HU',
+  'BEFR',
+  'BENL',
+  'RO',
+  'CHIT',
 ];
 
 function filterToAllowedHeaders(data: Record<string, any[]>) {
   const out: Record<string, any[]> = {};
   // always preserve slug if present
-  if ("slug" in data) {
-    out["slug"] = data["slug"];
+  if ('slug' in data) {
+    out['slug'] = data['slug'];
   }
 
   for (const header of ALLOWED_DYNAMIC_HEADERS) {
@@ -237,26 +214,20 @@ export async function getDynamicSheetCached(sheetTab: string) {
     // trigger background refresh
     cache
       .wrap(cacheKey, async () => {
-        const refreshed = await fetchSheetData("DYNAMIC", sheetTab);
-        console.log(
-          `[${formatTime(
-            new Date(),
-          )}] 🎯 | Refreshed dynamic cache: '${cacheKey}'`,
-        );
+        const refreshed = await fetchSheetData('DYNAMIC', sheetTab);
+        console.log(`[${formatTime(new Date())}] 🎯 | Refreshed dynamic cache: '${cacheKey}'`);
         return refreshed;
       })
       .catch((err) =>
         console.error(
-          `[${formatTime(
-            new Date(),
-          )}] Error refreshing dynamic cache '${cacheKey}':`,
-          err,
-        ),
+          `[${formatTime(new Date())}] Error refreshing dynamic cache '${cacheKey}':`,
+          err
+        )
       );
 
     return {
       message: `Cache hit - '${cacheKey}'`,
-      dataOrigin: "cache",
+      dataOrigin: 'cache',
       executionTime: `${Date.now() - start_time}ms`,
       data: filterToAllowedHeaders(cached),
     };
@@ -265,44 +236,33 @@ export async function getDynamicSheetCached(sheetTab: string) {
   // cache miss: populate synchronously
   try {
     const data = await cache.wrap(cacheKey, async () => {
-      const result = await fetchSheetData("DYNAMIC", sheetTab);
-      console.log(
-        `[${formatTime(
-          new Date(),
-        )}] 🎯 | New dynamic cache entry: '${cacheKey}'`,
-      );
+      const result = await fetchSheetData('DYNAMIC', sheetTab);
+      console.log(`[${formatTime(new Date())}] 🎯 | New dynamic cache entry: '${cacheKey}'`);
       return result;
     });
 
     return {
       message: `New cache entry: '${cacheKey}'`,
-      dataOrigin: "googleAPI",
+      dataOrigin: 'googleAPI',
       executionTime: `${Date.now() - start_time}ms`,
       data: filterToAllowedHeaders(data as Record<string, any[]>),
     };
   } catch (err) {
     console.error(
-      `[${formatTime(
-        new Date(),
-      )}] 🚒 | Failed to populate dynamic cache '${cacheKey}':`,
-      err,
+      `[${formatTime(new Date())}] 🚒 | Failed to populate dynamic cache '${cacheKey}':`,
+      err
     );
     throw err;
   }
 }
 
-export async function getDynamicTranslationsBySlug(
-  sheetTab: string,
-  languageSlug: string,
-) {
+export async function getDynamicTranslationsBySlug(sheetTab: string, languageSlug: string) {
   checkIfPrewarmIsDone();
 
   const envelope = await getDynamicSheetCached(sheetTab);
   const sheet = (envelope as any).data ?? envelope;
 
-  const slugArray = Array.isArray((sheet as any).slug)
-    ? (sheet as any).slug
-    : [];
+  const slugArray = Array.isArray((sheet as any).slug) ? (sheet as any).slug : [];
   const idx = slugArray.findIndex((s: any) => s === languageSlug);
 
   if (idx === -1) {

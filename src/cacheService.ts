@@ -1,6 +1,6 @@
-import { createCache } from "cache-manager";
-import { getMilisFromMinutes, getMilisFromSeconds } from "./timeUtils";
-import { getDataFromStaticSheet } from "./sheetsUtils";
+import { createCache } from 'cache-manager';
+import { getMilisFromMinutes, getMilisFromSeconds } from './timeUtils';
+import { getDataFromStaticSheet } from './sheetsUtils';
 
 const cache = createCache({
   ttl: getMilisFromMinutes(5),
@@ -14,26 +14,24 @@ export function checkIfPrewarmIsDone() {
     throw new Error(
       JSON.stringify({
         status: 500,
-        message: "Static content is being prewarmed, please try again shortly.",
-      }),
+        message: 'Static content is being prewarmed, please try again shortly.',
+      })
     );
   }
 }
 
 export async function prewarmStaticEndpoints() {
-  console.log("Prewarming static endpoints...");
+  console.log('Prewarming static endpoints...');
 
-  await getDataFromStaticSheet("HEADER", "header_all");
-  await getDataFromStaticSheet("FOOTER", "footer_all");
-  await getDataFromStaticSheet("TEMPLATES", "templates_all");
-  await getDataFromStaticSheet("CATEGORY_LINKS", "category_links_all");
-  await getDataFromStaticSheet("CATEGORY_TITLES", "category_titles_all");
+  await getDataFromStaticSheet('HEADER', 'header_all');
+  await getDataFromStaticSheet('FOOTER', 'footer_all');
+  await getDataFromStaticSheet('TEMPLATES', 'templates_all');
+  await getDataFromStaticSheet('CATEGORY_LINKS', 'category_links_all');
+  await getDataFromStaticSheet('CATEGORY_TITLES', 'category_titles_all');
 
   PREWARM_DONE = true;
 
-  console.log(
-    "Prewarming static endpoints complete. API is ready to serve requests!",
-  );
+  console.log('Prewarming static endpoints complete. API is ready to serve requests!');
 }
 
 export function setPrewarmDone(boolean: boolean) {
