@@ -33,7 +33,7 @@ export const app = new Elysia({
   .get('/', () => {
     return {
       message: 'Translations API',
-      docs: `https://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
+      docs: `http://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
     };
   })
 
@@ -42,7 +42,7 @@ export const app = new Elysia({
       .get('/', () => {
         return {
           message: 'Root endpoint for static content',
-          docs: `https://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
+          docs: `http://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
         };
       })
 
@@ -187,7 +187,7 @@ export const app = new Elysia({
       .get('/', () => {
         return {
           message: 'Root endpoint for dynamic content',
-          docs: `https://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
+          docs: `http://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
         };
       })
 
