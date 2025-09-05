@@ -13,8 +13,4 @@ jobs:
 
       - name: Run deploy script on server (local runner)
         run: |
-          cd "${{ secrets.DEPLOY_PATH }}"
-          git fetch --all
-          git reset --hard origin/main
-          # uruchom jako dedykowany użytkownik deploy (wymaga sudoers wpisu)
-          sudo -u translations_api_deploy /bin/bash "${{ secrets.DEPLOY_PATH }}/deploy.sh" main
+          sudo -u translations_api_deploy bash -lc "cd '${{ secrets.DEPLOY_PATH }}' && git fetch --all && git reset --hard origin/main && ./deploy.sh main"
