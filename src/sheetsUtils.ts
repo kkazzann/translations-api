@@ -1,5 +1,5 @@
 import { PREWARM_DONE } from '.';
-import cache, { checkIfPrewarmIsDone } from './cacheService';
+import cache, { checkIfPrewarmIsDone, setPrewarmDone } from './cacheService';
 import { getStaticTranslations, getDynamicTranslations } from './googleAuth';
 import { formatTime } from './timeUtils';
 
@@ -18,6 +18,15 @@ export async function fetchSheetData(spreadsheet: string, sheetName: string) {
   }
 
   const sheet = document.sheetsByTitle[sheetName];
+
+  if (!sheet) {
+    throw new Error(
+      JSON.stringify({
+        status: 500,
+        message: `Sheet '${sheetName}' not found in ${spreadsheet} translations document.`,
+      })
+    );
+  }
 
   await sheet.loadHeaderRow();
 
@@ -39,6 +48,7 @@ export async function getDataFromStaticSheet(sheetName: string, cacheKey: string
   const cached_values = await cache.get(cacheKey);
 
   if (cached_values) {
+    console.debug('getdatafromstaticsheet - cached values exist');
     console.log(`[${formatTime(new Date())}] ⚡ | Cache hit: '${cacheKey}'`);
 
     // CACHE WRAP RUNS IN BACKGROUND ---------
@@ -65,6 +75,8 @@ export async function getDataFromStaticSheet(sheetName: string, cacheKey: string
   // Fetch data and populate cache (await wrap so first caller
   // gets the data synchronously).
   try {
+    console.debug('getdatafromstaticsheet - cached values do NOT exist');
+
     const data = await cache.wrap(cacheKey, async () => {
       const result = await fetchSheetData('STATIC', sheetName);
       console.log(`[${formatTime(new Date())}] 🎯 | New cache entry: '${cacheKey}'`);
@@ -289,4 +301,77 @@ export async function getDynamicTranslationsBySlug(sheetTab: string, languageSlu
     message: `Translations for ${languageSlug}`,
     data: values,
   };
+}
+
+// Concurrency guard to avoid overlapping refills
+let staticRefillInProgress = false;
+
+/**
+ * Refill all static sheet caches by fetching fresh data and writing it into the cache.
+ * This forces a refresh every time it's called (useful for scheduled jobs).
+ */
+export async function refillStaticSheets() {
+  if (staticRefillInProgress) {
+    console.log('refillStaticSheets: already running, skipping this cycle');
+    return;
+  }
+
+  staticRefillInProgress = true;
+
+  const mappings: Array<{ sheet: string; cacheKey: string }> = [
+    { sheet: 'HEADER', cacheKey: 'header_all' },
+    { sheet: 'FOOTER', cacheKey: 'footer_all' },
+    { sheet: 'TEMPLATES', cacheKey: 'templates_all' },
+    { sheet: 'CATEGORY_LINKS', cacheKey: 'category_links_all' },
+    { sheet: 'CATEGORY_TITLES', cacheKey: 'category_titles_all' },
+  ];
+
+  console.log(
+    `[${formatTime(new Date())}] 🔁 | Starting static refill for ${mappings.length} sheets`
+  );
+
+  for (const { sheet, cacheKey } of mappings) {
+    try {
+      // Use cache.wrap so cache-manager tracks TTL/refreshThreshold consistently
+      await cache.wrap(cacheKey, async () => {
+        const fresh = await fetchSheetData('STATIC', sheet);
+        console.log(
+          `[${formatTime(
+            new Date()
+          )}] 🎯 | Refilled cache entry: '${cacheKey}' from sheet '${sheet}'`
+        );
+        return fresh;
+      });
+    } catch (err) {
+      console.error(
+        `[${formatTime(
+          new Date()
+        )}] 🚒 | Failed to refill cache '${cacheKey}' from sheet '${sheet}':`,
+        err
+      );
+    }
+  }
+
+  staticRefillInProgress = false;
+
+  console.log(`[${formatTime(new Date())}] ✅ | Static refill complete`);
+}
+
+/**
+ * Prewarm static endpoints on startup. This will populate the cache synchronously
+ * so the API can start serving requests without hitting Google Sheets on first
+ * user request.
+ */
+export async function prewarmStaticEndpoints() {
+  console.log('Prewarming static endpoints...');
+
+  await getDataFromStaticSheet('HEADER', 'header_all');
+  await getDataFromStaticSheet('FOOTER', 'footer_all');
+  await getDataFromStaticSheet('TEMPLATES', 'templates_all');
+  await getDataFromStaticSheet('CATEGORY_LINKS', 'category_links_all');
+  await getDataFromStaticSheet('CATEGORY_TITLES', 'category_titles_all');
+
+  setPrewarmDone(true);
+
+  console.log('Prewarming static endpoints complete. API is ready to serve requests!');
 }
