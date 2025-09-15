@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Simple deploy script for AlmaLinux
+# Simple deploy script for AlmaLinux - bun only
 # Place this on the server in the repo directory and make it executable: chmod +x deploy.sh
 
 set -euo pipefail
@@ -15,17 +15,13 @@ cd "$REPO_DIR"
 git fetch origin $BRANCH
 git reset --hard origin/$BRANCH
 
-# install dependencies (using bun if available, otherwise fallback to pnpm)
+# install dependencies with bun
 if command -v bun >/dev/null 2>&1; then
-  echo "Using bun to install dependencies"
+  echo "Installing dependencies with bun..."
   bun install
 else
-  if command -v pnpm >/dev/null 2>&1; then
-    echo "Using pnpm to install dependencies"
-    pnpm install --frozen-lockfile
-  else
-    echo "No bun or pnpm found - skipping install step"
-  fi
+  echo "ERROR: bun is required but not found. Please install bun: https://bun.sh"
+  exit 1
 fi
 
 # reload via pm2
@@ -34,7 +30,8 @@ if command -v pm2 >/dev/null 2>&1; then
   pm2 startOrReload ecosystem.config.js --env production
   pm2 save
 else
-  echo "pm2 not installed. Please install pm2 globally: npm i -g pm2"
+  echo "ERROR: pm2 is required but not found. Please install pm2: bun add -g pm2"
+  exit 1
 fi
 
 echo "Deploy complete"
