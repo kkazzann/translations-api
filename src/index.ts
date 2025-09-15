@@ -245,13 +245,15 @@ export const app = new Elysia({
       )
   );
 
+
+const localIp = getLocalLanIp();
+
+
+await prewarmStaticEndpoints();
+
 // Bind to all interfaces so the server is reachable from the LAN.
 // Elysia's listen accepts an options object where we can set hostname to 0.0.0.0
 // which means "listen on all network interfaces".
 app.listen({ port: 3000, hostname: '0.0.0.0' });
 
-const localIp = getLocalLanIp();
-
 console.log(`\n🔥 API is running at http://${localIp}:${app.server?.port}${API_PREFIX}\n`);
-
-prewarmStaticEndpoints();
