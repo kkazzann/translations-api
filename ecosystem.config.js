@@ -1,17 +1,19 @@
 /**
- * PM2 ecosystem config — uses bun as interpreter if available.
- * If you prefer Node, change `interpreter` to 'node' and ensure the project is built to JS.
+ * PM2 ecosystem config — bun only
  */
 module.exports = {
   apps: [
     {
       name: 'translations-api',
       script: 'src/index.ts',
-      interpreter: 'bun', // set to 'node' if running compiled JS
+      interpreter: 'bun',
       env: {
         NODE_ENV: 'production',
       },
       watch: false,
+      max_memory_restart: '1G',
+      instances: 1,
+      exec_mode: 'fork',
     },
   ],
 };
