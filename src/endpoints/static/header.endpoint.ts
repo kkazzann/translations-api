@@ -12,11 +12,18 @@ export function registerHeaderGroup(parent: any) {
       .group('/lang', (_lang: any) =>
         _lang
           .get('/', async () => {
-            const cacheEntry = await cache.get<{ slug: string[] }>('header_all');
+            // Use cache.wrap to respect refreshThreshold, not direct cache.get
+            const cacheEntry = await cache.wrap('header_all', async () => {
+              // This should not normally execute since getDataFromStaticSheet already populated it
+              // But if cache expired, we need to refetch
+              const { getDataFromStaticSheet } = await import('../../sheetsUtils');
+              const result = await getDataFromStaticSheet('HEADER', 'header_all');
+              return result.data;
+            });
 
             return {
               message: 'Available language slugs',
-              data: cacheEntry?.slug ?? 'none',
+              data: (cacheEntry as any)?.slug ?? 'none',
             };
           })
 

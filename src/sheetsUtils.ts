@@ -39,49 +39,59 @@ export async function fetchSheetData(spreadsheet: string, sheetName: string) {
   return result;
 }
 
+// Track when cache entries were last refreshed
+const cacheRefreshTimes = new Map<string, number>();
+const REFRESH_THRESHOLD_MS = 60 * 1000; // 1 minute
+
 export async function getDataFromStaticSheet(sheetName: string, cacheKey: string) {
   let start_time = Date.now();
 
-  // 🎯 CACHE HIT ---------
-  // If value exists, return it and go for a background refresh
-  // If missing, await the wrap call to populate the cache before returning.
-  const cached_values = await cache.get(cacheKey);
+  try {
+    // Check if we have cached data
+    const cachedData = await cache.get(cacheKey);
 
-  if (cached_values) {
-    console.debug('getdatafromstaticsheet - cached values exist');
-    console.log(`[${formatTime(new Date())}] ⚡ | Cache hit: '${cacheKey}'`);
+    if (cachedData) {
+      const lastRefreshTime = cacheRefreshTimes.get(cacheKey) || 0;
+      const timeSinceRefresh = Date.now() - lastRefreshTime;
 
-    // CACHE WRAP RUNS IN BACKGROUND ---------
-    // cache.wrap will only run the fetch function in background when remaining TTL < refreshThreshold.
-    cache
-      .wrap(cacheKey, async () => {
-        const data = await fetchSheetData('STATIC', sheetName);
-        console.log(`[${formatTime(new Date())}] 🎯 | Refreshed cache entry: '${cacheKey}'`);
-        return data;
-      })
-      .catch((err) =>
-        console.error(`[${formatTime(new Date())}] Error refreshing cache '${cacheKey}':`, err)
+      // If data is older than refresh threshold, trigger background refresh
+      if (timeSinceRefresh > REFRESH_THRESHOLD_MS) {
+        console.log(
+          `[${formatTime(
+            new Date()
+          )}] 🔄 | Triggering background refresh for '${cacheKey}' (${Math.round(
+            timeSinceRefresh / 1000
+          )}s old)`
+        );
+
+        // Background refresh - don't await
+        refreshCacheInBackground(sheetName, cacheKey);
+      }
+
+      console.log(
+        `[${formatTime(new Date())}] ⚡ | Cache hit: '${cacheKey}' (age: ${Math.round(
+          timeSinceRefresh / 1000
+        )}s)`
       );
 
-    return {
-      message: `Cache hit - '${cacheKey}'`,
-      dataOrigin: 'cache',
-      executionTime: `${Date.now() - start_time}ms`,
-      data: cached_values,
-    };
-  }
+      return {
+        message: `Cache hit - '${cacheKey}'`,
+        dataOrigin: 'cache',
+        executionTime: `${Date.now() - start_time}ms`,
+        data: cachedData,
+      };
+    }
 
-  // 💨 CACHE MISS ---------
-  // Fetch data and populate cache (await wrap so first caller
-  // gets the data synchronously).
-  try {
-    console.debug('getdatafromstaticsheet - cached values do NOT exist');
+    // Cache miss - fetch data synchronously
+    console.log(
+      `[${formatTime(
+        new Date()
+      )}] 🎯 | Cache miss: fetching fresh data for '${cacheKey}' from sheet '${sheetName}'`
+    );
 
-    const data = await cache.wrap(cacheKey, async () => {
-      const result = await fetchSheetData('STATIC', sheetName);
-      console.log(`[${formatTime(new Date())}] 🎯 | New cache entry: '${cacheKey}'`);
-      return result;
-    });
+    const data = await fetchSheetData('STATIC', sheetName);
+    await cache.set(cacheKey, data);
+    cacheRefreshTimes.set(cacheKey, Date.now());
 
     return {
       message: `New cache entry: '${cacheKey}'`,
@@ -91,7 +101,9 @@ export async function getDataFromStaticSheet(sheetName: string, cacheKey: string
     };
   } catch (err) {
     console.error(
-      `[${formatTime(new Date())}] 🚒 | Prewarm failed for: '${cacheKey}', error: ${String(err)}`
+      `[${formatTime(new Date())}] 🚒 | Failed to get data for: '${cacheKey}', error: ${String(
+        err
+      )}`
     );
     return {
       message: `Error fetching data.`,
@@ -100,48 +112,57 @@ export async function getDataFromStaticSheet(sheetName: string, cacheKey: string
   }
 }
 
+// Background refresh function
+async function refreshCacheInBackground(sheetName: string, cacheKey: string) {
+  try {
+    const data = await fetchSheetData('STATIC', sheetName);
+    await cache.set(cacheKey, data);
+    cacheRefreshTimes.set(cacheKey, Date.now());
+    console.log(`[${formatTime(new Date())}] 🎯 | Background refresh completed for '${cacheKey}'`);
+  } catch (err) {
+    console.error(
+      `[${formatTime(new Date())}] 🚒 | Background refresh failed for '${cacheKey}':`,
+      err
+    );
+  }
+}
+
 export async function getStaticTranslationsBySlug(cacheKey: string, languageSlug: string) {
   checkIfPrewarmIsDone();
 
-  // Try to read cache; if missing (TTL expired), refresh it synchronously
-  let cacheEntry = await cache.get<Record<string, any[]>>(cacheKey);
+  // Use cache.wrap to respect refreshThreshold - this will refresh in background when stale
+  let cacheEntry: Record<string, any[]>;
 
-  if (!cacheEntry) {
-    // Map common cache keys to sheet names so we can fetch the sheet when missing
-    const keyToSheetMap: Record<string, string> = {
-      header_all: 'HEADER',
-      footer_all: 'FOOTER',
-      templates_all: 'TEMPLATES',
-      category_links_all: 'CATEGORY_LINKS',
-      category_titles_all: 'CATEGORY_TITLES',
+  try {
+    cacheEntry = await cache.wrap(cacheKey, async () => {
+      // Map common cache keys to sheet names so we can fetch the sheet when missing/stale
+      const keyToSheetMap: Record<string, string> = {
+        header_all: 'HEADER',
+        footer_all: 'FOOTER',
+        templates_all: 'TEMPLATES',
+        category_links_all: 'CATEGORY_LINKS',
+        category_titles_all: 'CATEGORY_TITLES',
+      };
+
+      const sheetName = keyToSheetMap[cacheKey];
+      if (!sheetName) {
+        throw new Error(`No sheet mapping for cache key: ${cacheKey}`);
+      }
+
+      const result = await fetchSheetData('STATIC', sheetName);
+      console.log(
+        `[${formatTime(
+          new Date()
+        )}] 🎯 | Refilled cache entry: '${cacheKey}' via sheet '${sheetName}' (background refresh)`
+      );
+      return result;
+    });
+  } catch (err) {
+    console.error(`[${formatTime(new Date())}] 🚒 | Failed to refresh cache '${cacheKey}':`, err);
+    return {
+      message: `Error fetching data for '${cacheKey}'`,
+      error: String(err),
     };
-
-    const sheetName = keyToSheetMap[cacheKey];
-
-    if (!sheetName) {
-      return {
-        message: `Cache miss for '${cacheKey}' and no sheet mapping available to refresh it.`,
-        data: null,
-      };
-    }
-
-    try {
-      cacheEntry = await cache.wrap(cacheKey, async () => {
-        const result = await fetchSheetData('STATIC', sheetName);
-        console.log(
-          `[${formatTime(
-            new Date()
-          )}] 🎯 | Refilled cache entry: '${cacheKey}' via sheet '${sheetName}'`
-        );
-        return result;
-      });
-    } catch (err) {
-      console.error(`[${formatTime(new Date())}] 🚒 | Failed to refresh cache '${cacheKey}':`, err);
-      return {
-        message: `Error fetching data for '${cacheKey}'`,
-        error: String(err),
-      };
-    }
   }
 
   const slugArray = Array.isArray(cacheEntry!.slug) ? cacheEntry!.slug : [];
@@ -219,39 +240,54 @@ export async function getDynamicSheetCached(sheetTab: string) {
   const cacheKey = `dynamic_${sheetTab}`;
   const start_time = Date.now();
 
-  const cached = await cache.get<Record<string, any[]>>(cacheKey);
-  if (cached) {
-    console.log(`[${formatTime(new Date())}] ⚡ | Cache hit: '${cacheKey}'`);
+  try {
+    // Check if we have cached data
+    const cachedData = await cache.get<Record<string, any[]>>(cacheKey);
 
-    // trigger background refresh
-    cache
-      .wrap(cacheKey, async () => {
-        const refreshed = await fetchSheetData('DYNAMIC', sheetTab);
-        console.log(`[${formatTime(new Date())}] 🎯 | Refreshed dynamic cache: '${cacheKey}'`);
-        return refreshed;
-      })
-      .catch((err) =>
-        console.error(
-          `[${formatTime(new Date())}] Error refreshing dynamic cache '${cacheKey}':`,
-          err
-        )
+    if (cachedData) {
+      const lastRefreshTime = cacheRefreshTimes.get(cacheKey) || 0;
+      const timeSinceRefresh = Date.now() - lastRefreshTime;
+
+      // If data is older than refresh threshold, trigger background refresh
+      if (timeSinceRefresh > REFRESH_THRESHOLD_MS) {
+        console.log(
+          `[${formatTime(
+            new Date()
+          )}] 🔄 | Triggering background refresh for '${cacheKey}' (${Math.round(
+            timeSinceRefresh / 1000
+          )}s old)`
+        );
+
+        // Background refresh - don't await
+        refreshDynamicCacheInBackground(sheetTab, cacheKey);
+      }
+
+      console.log(
+        `[${formatTime(new Date())}] ⚡ | Cache hit: '${cacheKey}' (age: ${Math.round(
+          timeSinceRefresh / 1000
+        )}s)`
       );
 
-    return {
-      message: `Cache hit - '${cacheKey}'`,
-      dataOrigin: 'cache',
-      executionTime: `${Date.now() - start_time}ms`,
-      data: filterToAllowedHeaders(cached),
-    };
-  }
+      return {
+        message: `Cache hit - '${cacheKey}'`,
+        dataOrigin: 'cache',
+        executionTime: `${Date.now() - start_time}ms`,
+        data: filterToAllowedHeaders(cachedData),
+      };
+    }
 
-  // cache miss: populate synchronously
-  try {
-    const data = await cache.wrap(cacheKey, async () => {
-      const result = await fetchSheetData('DYNAMIC', sheetTab);
-      console.log(`[${formatTime(new Date())}] 🎯 | New dynamic cache entry: '${cacheKey}'`);
-      return result;
-    });
+    // Cache miss - fetch data synchronously
+    console.log(
+      `[${formatTime(
+        new Date()
+      )}] 🎯 | Cache miss: fetching fresh data for '${cacheKey}' from sheet '${sheetTab}'`
+    );
+
+    const data = await fetchSheetData('DYNAMIC', sheetTab);
+    await cache.set(cacheKey, data);
+    cacheRefreshTimes.set(cacheKey, Date.now());
+
+    console.log(`[${formatTime(new Date())}] 🎯 | New dynamic cache entry: '${cacheKey}'`);
 
     return {
       message: `New cache entry: '${cacheKey}'`,
@@ -265,6 +301,21 @@ export async function getDynamicSheetCached(sheetTab: string) {
       err
     );
     throw err;
+  }
+}
+
+// Background refresh function for dynamic cache
+async function refreshDynamicCacheInBackground(sheetTab: string, cacheKey: string) {
+  try {
+    const data = await fetchSheetData('DYNAMIC', sheetTab);
+    await cache.set(cacheKey, data);
+    cacheRefreshTimes.set(cacheKey, Date.now());
+    console.log(`[${formatTime(new Date())}] 🎯 | Background refresh completed for '${cacheKey}'`);
+  } catch (err) {
+    console.error(
+      `[${formatTime(new Date())}] 🚒 | Background refresh failed for '${cacheKey}':`,
+      err
+    );
   }
 }
 
@@ -301,60 +352,6 @@ export async function getDynamicTranslationsBySlug(sheetTab: string, languageSlu
     message: `Translations for ${languageSlug}`,
     data: values,
   };
-}
-
-// Concurrency guard to avoid overlapping refills
-let staticRefillInProgress = false;
-
-/**
- * Refill all static sheet caches by fetching fresh data and writing it into the cache.
- * This forces a refresh every time it's called (useful for scheduled jobs).
- */
-export async function refillStaticSheets() {
-  if (staticRefillInProgress) {
-    console.log('refillStaticSheets: already running, skipping this cycle');
-    return;
-  }
-
-  staticRefillInProgress = true;
-
-  const mappings: Array<{ sheet: string; cacheKey: string }> = [
-    { sheet: 'HEADER', cacheKey: 'header_all' },
-    { sheet: 'FOOTER', cacheKey: 'footer_all' },
-    { sheet: 'TEMPLATES', cacheKey: 'templates_all' },
-    { sheet: 'CATEGORY_LINKS', cacheKey: 'category_links_all' },
-    { sheet: 'CATEGORY_TITLES', cacheKey: 'category_titles_all' },
-  ];
-
-  console.log(
-    `[${formatTime(new Date())}] 🔁 | Starting static refill for ${mappings.length} sheets`
-  );
-
-  for (const { sheet, cacheKey } of mappings) {
-    try {
-      // Use cache.wrap so cache-manager tracks TTL/refreshThreshold consistently
-      await cache.wrap(cacheKey, async () => {
-        const fresh = await fetchSheetData('STATIC', sheet);
-        console.log(
-          `[${formatTime(
-            new Date()
-          )}] 🎯 | Refilled cache entry: '${cacheKey}' from sheet '${sheet}'`
-        );
-        return fresh;
-      });
-    } catch (err) {
-      console.error(
-        `[${formatTime(
-          new Date()
-        )}] 🚒 | Failed to refill cache '${cacheKey}' from sheet '${sheet}':`,
-        err
-      );
-    }
-  }
-
-  staticRefillInProgress = false;
-
-  console.log(`[${formatTime(new Date())}] ✅ | Static refill complete`);
 }
 
 /**

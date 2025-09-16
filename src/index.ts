@@ -7,8 +7,7 @@ import { registerCategoryTitlesGroup } from './endpoints/static/category_titles.
 import { registerCategoryLinksGroup } from './endpoints/static/category_links.endpoint';
 import { getLocalLanIp } from './networkUtils';
 import { registerSheetTabGroup } from './endpoints/dynamic/sheet_tab.endpoint';
-import { prewarmStaticEndpoints, refillStaticSheets } from './sheetsUtils';
-import { getMilisFromMinutes, getMilisFromSeconds } from './timeUtils';
+import { prewarmStaticEndpoints } from './sheetsUtils';
 import cors from '@elysiajs/cors';
 
 export const API_PREFIX = '/translations-api/v1';
@@ -84,26 +83,3 @@ await prewarmStaticEndpoints();
 app.listen({ port: 3000, hostname: '0.0.0.0' });
 
 console.log(`\n🔥 API is running at http://${getLocalLanIp()}:${app.server?.port}${API_PREFIX}\n`);
-
-// Schedule periodic static sheet refill every 5 minutes.
-const FIVE_MINUTES = getMilisFromMinutes(5);
-const START_DELAY = getMilisFromSeconds(30);
-
-setTimeout(() => {
-  try {
-    // run immediately once after start delay
-    refillStaticSheets().catch((err) =>
-      console.error('Error during scheduled static refill (initial):', err)
-    );
-
-    // schedule regular refills
-    setInterval(() => {
-      refillStaticSheets().catch((err) =>
-        console.error('Error during scheduled static refill:', err)
-      );
-    }, FIVE_MINUTES);
-    console.log(`Scheduled static sheet refills every ${FIVE_MINUTES / 1000 / 60} minutes`);
-  } catch (err) {
-    console.error('Failed to schedule static refills:', err);
-  }
-}, START_DELAY);

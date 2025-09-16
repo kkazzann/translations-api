@@ -12,11 +12,16 @@ export function registerCategoryTitlesGroup(parent: any) {
       .group('/lang', (_lang: any) =>
         _lang
           .get('/', async () => {
-            const cacheEntry = await cache.get<{ slug: string[] }>('category_titles_all');
+            // Use cache.wrap to respect refreshThreshold, not direct cache.get
+            const cacheEntry = await cache.wrap('category_titles_all', async () => {
+              const { getDataFromStaticSheet } = await import('../../sheetsUtils');
+              const result = await getDataFromStaticSheet('CATEGORY_TITLES', 'category_titles_all');
+              return result.data;
+            });
 
             return {
               message: 'Available language slugs',
-              data: cacheEntry?.slug ?? 'none',
+              data: (cacheEntry as any)?.slug ?? 'none',
             };
           })
 

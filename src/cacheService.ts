@@ -1,9 +1,8 @@
 import { createCache } from 'cache-manager';
-import { getMilisFromMinutes, getMilisFromSeconds } from './timeUtils';
+import { getMilisFromHours, getMilisFromMinutes, getMilisFromSeconds } from './timeUtils';
 
 const cache = createCache({
-  ttl: getMilisFromMinutes(1),
-  refreshThreshold: getMilisFromSeconds(1),
+  ttl: getMilisFromHours(3), // Keep data for 3 hours max (hard expiry)
 });
 
 let PREWARM_DONE = false;
