@@ -222,18 +222,25 @@ const ALLOWED_DYNAMIC_HEADERS = [
   'CHIT',
 ];
 
+// Header transformation mapping: spreadsheet_header -> api_output_header
+const HEADER_TRANSFORMATIONS: Record<string, string> = {
+  'CH': 'CHDE',
+  // Add more transformations here if needed in the future
+  // 'OLD_NAME': 'NEW_NAME',
+};
+
 function filterToAllowedHeaders(data: Record<string, any[]>) {
-  const out: Record<string, any[]> = {};
-  // always preserve slug if present
-  if ('slug' in data) {
-    out['slug'] = data['slug'];
+  const filtered: Record<string, any[]> = {};
+  
+  for (const [header, values] of Object.entries(data)) {
+    if (ALLOWED_DYNAMIC_HEADERS.includes(header)) {
+      // Transform header name if mapping exists, otherwise use original
+      const outputHeader = HEADER_TRANSFORMATIONS[header] || header;
+      filtered[outputHeader] = values;
+    }
   }
-
-  for (const header of ALLOWED_DYNAMIC_HEADERS) {
-    if (header in data) out[header] = data[header];
-  }
-
-  return out;
+  
+  return filtered;
 }
 
 export async function getDynamicSheetCached(sheetTab: string) {
