@@ -34,7 +34,8 @@ export async function fetchSheetData(spreadsheet: string, sheetName: string) {
   const rows = await sheet.getRows();
   const result: { [key: string]: any } = {};
 
-  for (const header of headers) result[header] = rows.map((row) => row.get(header));
+  // replace newlines with <br /> and trim whitespace
+  for (const header of headers) result[header] = rows.map((row) => row.get(header)?.replaceAll('\n', '<br />').trim());
 
   return result;
 }
