@@ -1,5 +1,5 @@
 import cache, { checkIfPrewarmIsDone } from '../../cacheService';
-import { getDataFromStaticSheet, getStaticTranslationsBySlug } from '../../sheetsUtils';
+import { getDataFromStaticSheet, getStaticTranslationsBySlug, forceRefreshStaticCache } from '../../sheetsUtils';
 
 export function registerFooterGroup(parent: any) {
   parent.group('/footer', (_footer: any) =>
@@ -7,6 +7,10 @@ export function registerFooterGroup(parent: any) {
       .get('/', async () => {
         checkIfPrewarmIsDone();
         return await getDataFromStaticSheet('FOOTER', 'footer_all');
+      })
+
+      .get('/force-refresh', async () => {
+        return await forceRefreshStaticCache('FOOTER', 'footer_all');
       })
 
       .group('/lang', (_lang: any) =>

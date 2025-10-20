@@ -1,5 +1,5 @@
 import cache, { checkIfPrewarmIsDone } from '../../cacheService';
-import { getDataFromStaticSheet, getStaticTranslationsBySlug } from '../../sheetsUtils';
+import { getDataFromStaticSheet, getStaticTranslationsBySlug, forceRefreshStaticCache } from '../../sheetsUtils';
 
 export function registerTemplatesGroup(parent: any) {
   parent.group('/templates', (_templates: any) =>
@@ -7,6 +7,10 @@ export function registerTemplatesGroup(parent: any) {
       .get('/', async () => {
         checkIfPrewarmIsDone();
         return await getDataFromStaticSheet('TEMPLATES', 'templates_all');
+      })
+
+      .get('/force-refresh', async () => {
+        return await forceRefreshStaticCache('TEMPLATES', 'templates_all');
       })
 
       .group('/lang', (_lang: any) =>

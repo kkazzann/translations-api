@@ -1,4 +1,4 @@
-import { getDynamicSheetCached } from '../../sheetsUtils';
+import { getDynamicSheetCached, forceRefreshDynamicCache } from '../../sheetsUtils';
 
 export function registerSheetTabGroup(parent: any) {
   parent.group('/:sheet_tab', (_sheet_tab: any) =>
@@ -13,6 +13,10 @@ export function registerSheetTabGroup(parent: any) {
           dataOrigin: (envelope as any).dataOrigin,
           executionTime: (envelope as any).executionTime,
         };
+      })
+
+      .get('/force-refresh', async ({ params: { sheet_tab } }: any) => {
+        return await forceRefreshDynamicCache(sheet_tab);
       })
 
       // /dynamic/:sheet_tab/:range -> returns filtered headers for given range

@@ -35,7 +35,8 @@ export async function fetchSheetData(spreadsheet: string, sheetName: string) {
   const result: { [key: string]: any } = {};
 
   // replace newlines with <br /> and trim whitespace
-  for (const header of headers) result[header] = rows.map((row) => row.get(header)?.replaceAll('\n', '<br />').trim());
+  for (const header of headers)
+    result[header] = rows.map((row) => row.get(header)?.replaceAll('\n', '<br />').trim());
 
   return result;
 }
@@ -225,14 +226,14 @@ const ALLOWED_DYNAMIC_HEADERS = [
 
 // Header transformation mapping: spreadsheet_header -> api_output_header
 const HEADER_TRANSFORMATIONS: Record<string, string> = {
-  'CH': 'CHDE',
+  CH: 'CHDE',
   // Add more transformations here if needed in the future
   // 'OLD_NAME': 'NEW_NAME',
 };
 
 function filterToAllowedHeaders(data: Record<string, any[]>) {
   const filtered: Record<string, any[]> = {};
-  
+
   for (const [header, values] of Object.entries(data)) {
     if (ALLOWED_DYNAMIC_HEADERS.includes(header)) {
       // Transform header name if mapping exists, otherwise use original
@@ -240,7 +241,7 @@ function filterToAllowedHeaders(data: Record<string, any[]>) {
       filtered[outputHeader] = values;
     }
   }
-  
+
   return filtered;
 }
 
@@ -360,6 +361,77 @@ export async function getDynamicTranslationsBySlug(sheetTab: string, languageSlu
     message: `Translations for ${languageSlug}`,
     data: values,
   };
+}
+
+export async function forceRefreshStaticCache(sheetName: string, cacheKey: string) {
+  const start_time = Date.now();
+
+  try {
+    console.log(
+      `[${formatTime(
+        new Date()
+      )}] 🔄 | Force refresh initiated for '${cacheKey}' from sheet '${sheetName}'`
+    );
+
+    const data = await fetchSheetData('STATIC', sheetName);
+    await cache.set(cacheKey, data);
+    cacheRefreshTimes.set(cacheKey, Date.now());
+
+    console.log(
+      `[${formatTime(new Date())}] ✅ | Force refresh completed for '${cacheKey}' in ${
+        Date.now() - start_time
+      }ms`
+    );
+
+    return {
+      message: `Force refresh successful for '${cacheKey}'`,
+      dataOrigin: 'googleAPI',
+      executionTime: `${Date.now() - start_time}ms`,
+      data: data,
+    };
+  } catch (err) {
+    console.error(`[${formatTime(new Date())}] 🚒 | Force refresh failed for '${cacheKey}':`, err);
+    return {
+      message: `Error during force refresh of '${cacheKey}'`,
+      error: String(err),
+    };
+  }
+}
+
+export async function forceRefreshDynamicCache(sheetTab: string) {
+  const cacheKey = `dynamic_${sheetTab}`;
+  const start_time = Date.now();
+
+  try {
+    console.log(
+      `[${formatTime(
+        new Date()
+      )}] 🔄 | Force refresh initiated for '${cacheKey}' from sheet '${sheetTab}'`
+    );
+
+    const data = await fetchSheetData('DYNAMIC', sheetTab);
+    await cache.set(cacheKey, data);
+    cacheRefreshTimes.set(cacheKey, Date.now());
+
+    console.log(
+      `[${formatTime(new Date())}] ✅ | Force refresh completed for '${cacheKey}' in ${
+        Date.now() - start_time
+      }ms`
+    );
+
+    return {
+      message: `Force refresh successful for '${cacheKey}'`,
+      dataOrigin: 'googleAPI',
+      executionTime: `${Date.now() - start_time}ms`,
+      data: filterToAllowedHeaders(data as Record<string, any[]>),
+    };
+  } catch (err) {
+    console.error(`[${formatTime(new Date())}] 🚒 | Force refresh failed for '${cacheKey}':`, err);
+    return {
+      message: `Error during force refresh of '${cacheKey}'`,
+      error: String(err),
+    };
+  }
 }
 
 /**

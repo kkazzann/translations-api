@@ -1,5 +1,5 @@
 import cache, { checkIfPrewarmIsDone } from '../../cacheService';
-import { getDataFromStaticSheet, getStaticTranslationsBySlug } from '../../sheetsUtils';
+import { getDataFromStaticSheet, getStaticTranslationsBySlug, forceRefreshStaticCache } from '../../sheetsUtils';
 
 export function registerCategoryLinksGroup(parent: any) {
   parent.group('/category_links', (_category_links: any) =>
@@ -7,6 +7,10 @@ export function registerCategoryLinksGroup(parent: any) {
       .get('/', async () => {
         checkIfPrewarmIsDone();
         return await getDataFromStaticSheet('CATEGORY_LINKS', 'category_links_all');
+      })
+
+      .get('/force-refresh', async () => {
+        return await forceRefreshStaticCache('CATEGORY_LINKS', 'category_links_all');
       })
 
       .group('/lang', (_lang: any) =>

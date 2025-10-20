@@ -1,5 +1,5 @@
 import cache, { checkIfPrewarmIsDone } from '../../cacheService';
-import { getDataFromStaticSheet, getStaticTranslationsBySlug } from '../../sheetsUtils';
+import { getDataFromStaticSheet, getStaticTranslationsBySlug, forceRefreshStaticCache } from '../../sheetsUtils';
 
 export function registerHeaderGroup(parent: any) {
   parent.group('/header', (_header: any) =>
@@ -7,6 +7,10 @@ export function registerHeaderGroup(parent: any) {
       .get('/', async () => {
         checkIfPrewarmIsDone();
         return await getDataFromStaticSheet('HEADER', 'header_all');
+      })
+
+      .get('/force-refresh', async () => {
+        return await forceRefreshStaticCache('HEADER', 'header_all');
       })
 
       .group('/lang', (_lang: any) =>
