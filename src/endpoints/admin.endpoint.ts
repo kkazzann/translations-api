@@ -6,11 +6,6 @@ const tokens = new Map<string, { createdAt: number; username: string }>();
 const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 
-console.log('[ADMIN] Loaded credentials:', {
-  user: ADMIN_USER,
-  passLength: ADMIN_PASS?.length || 0,
-});
-
 function validateAuthHeader(authHeader: string | undefined) {
   if (!authHeader) return false;
 
@@ -26,12 +21,6 @@ export function registerAdminGroup(parent: any) {
     _admin
       .post('/login', async ({ body }: any) => {
         const { username, password } = body || {};
-
-        console.log('[LOGIN] Attempt:', {
-          provided: { username, passLength: password?.length },
-          expected: { username: ADMIN_USER, passLength: ADMIN_PASS?.length },
-          match: username === ADMIN_USER && password === ADMIN_PASS,
-        });
 
         if (username === ADMIN_USER && password === ADMIN_PASS) {
           const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
