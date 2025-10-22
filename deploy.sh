@@ -28,7 +28,7 @@ fi
 echo "Building frontend..."
 cd frontend
 bun install
-NODE_ENV=production bun run build
+VITE_BASE_PATH=/ bun run build
 cd ..
 
 # reload via pm2
