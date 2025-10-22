@@ -5,6 +5,7 @@ import ChartPanel from './ChartPanel';
 import MetricsPanel from './MetricsPanel';
 import type { Summary } from '../types/Summary';
 import type { Stat } from '../types/Stat';
+import { API_BASE_URL } from '../config';
 
 const CacheStats: React.FC<{ token: string; setToken: (token: string | null) => void }> = ({
   token,
@@ -27,7 +28,7 @@ const CacheStats: React.FC<{ token: string; setToken: (token: string | null) => 
     setLoading(true);
 
     try {
-      const response = await fetch('/translations-api/v1/admin/cache-stats', {
+      const response = await fetch(`${API_BASE_URL}/admin/cache-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -57,10 +58,10 @@ const CacheStats: React.FC<{ token: string; setToken: (token: string | null) => 
 
       if (key.startsWith('dynamic_')) {
         const sheetTab = key.replace('dynamic_', '');
-        url = `/translations-api/v1/dynamic/${sheetTab}/force-refresh`;
+        url = `${API_BASE_URL}/dynamic/${sheetTab}/force-refresh`;
       } else {
         const staticKey = key.replace('_all', '');
-        url = `/translations-api/v1/static/${staticKey}/force-refresh`;
+        url = `${API_BASE_URL}/static/${staticKey}/force-refresh`;
       }
 
       await fetch(url, {

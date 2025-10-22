@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Icon } from '@iconify-icon/react';
 import styles from './Login.module.scss';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '../config';
 
 const Login: React.FC<{ setToken: (token: string) => void }> = ({ setToken }) => {
   const [username, setUsername] = useState('');
@@ -18,7 +19,7 @@ const Login: React.FC<{ setToken: (token: string) => void }> = ({ setToken }) =>
     setError('');
 
     try {
-      const response = await axios.post('/translations-api/v1/admin/login', {
+      const response = await axios.post(`${API_BASE_URL}/admin/login`, {
         username,
         password,
       });
