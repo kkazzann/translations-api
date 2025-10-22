@@ -1,5 +1,5 @@
 import { createCache } from 'cache-manager';
-import { getMilisFromHours, getMilisFromMinutes, getMilisFromSeconds } from './timeUtils';
+import { getMilisFromHours } from './timeUtils';
 
 const cache = createCache({
   ttl: getMilisFromHours(3), // Keep data for 3 hours max (hard expiry)
