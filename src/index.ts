@@ -9,6 +9,9 @@ import { getLocalLanIp } from './networkUtils';
 import { registerSheetTabGroup } from './endpoints/dynamic/sheet_tab.endpoint';
 import { prewarmStaticEndpoints } from './sheetsUtils';
 import cors from '@elysiajs/cors';
+import { registerAdminGroup } from './endpoints/admin.endpoint';
+import { staticPlugin } from '@elysiajs/static';
+import { file } from 'bun';
 
 export const API_PREFIX = '/translations-api/v1';
 export let PREWARM_DONE = false;
@@ -24,6 +27,14 @@ export const app: any = new Elysia({
       origin: '*',
     })
   )
+  .use(
+    staticPlugin({
+      assets: 'public',
+      prefix: '',
+    })
+  )
+
+  .get('/', () => file('./public/index.html'))
 
   // automatic scalar documentation
   .use(
@@ -37,13 +48,6 @@ export const app: any = new Elysia({
       },
     })
   )
-
-  .get('/', () => {
-    return {
-      message: 'Translations API',
-      docs: `http://${localIp}:${app.server?.port}${API_PREFIX}/docs`,
-    };
-  })
 
   .group('/static', (_static) => {
     _static.get('/', () => {
@@ -75,6 +79,8 @@ export const app: any = new Elysia({
 
     return _dynamic;
   });
+
+registerAdminGroup(app);
 
 // Prewarm caches on startup so first requests don't hit Google Sheets
 await prewarmStaticEndpoints();
