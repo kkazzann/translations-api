@@ -28,8 +28,8 @@ fi
 echo "Building frontend..."
 cd frontend
 bun install
-echo "Building with VITE_BASE_PATH='/' and VITE_API_BASE=''"
-VITE_BASE_PATH="/" VITE_API_BASE="" bun run build
+echo "Building for production..."
+bun run build:prod
 cd ..
 
 # reload via pm2
