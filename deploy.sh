@@ -17,12 +17,19 @@ git reset --hard origin/$BRANCH
 
 # install dependencies with bun
 if command -v bun >/dev/null 2>&1; then
-  echo "Installing dependencies with bun..."
+  echo "Installing backend dependencies with bun..."
   bun install
 else
   echo "ERROR: bun is required but not found. Please install bun: https://bun.sh"
   exit 1
 fi
+
+# build frontend
+echo "Building frontend..."
+cd frontend
+bun install
+bun run build
+cd ..
 
 # reload via pm2
 if command -v pm2 >/dev/null 2>&1; then
