@@ -28,7 +28,9 @@ fi
 echo "Building frontend..."
 cd frontend
 bun install
-VITE_BASE_PATH=/ VITE_API_BASE= bun run build
+export VITE_BASE_PATH=/
+export VITE_API_BASE=
+bun run build
 cd ..
 
 # reload via pm2
