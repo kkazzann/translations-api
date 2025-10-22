@@ -129,6 +129,11 @@ const CacheStats: React.FC<{ token: string; setToken: (token: string | null) => 
         <h1>Cache Dashboard</h1>
 
         <div className={styles.buttonsContainer}>
+          <button className={styles.docs} onClick={() => window.open('docs', '_self')}>
+            <Icon icon="qlementine-icons:help-16" width="24px" height="24px" />
+            Docs
+          </button>
+
           <button className={styles.refresh} onClick={fetchStats} disabled={loading}>
             <Icon icon="ic:round-refresh" width="24px" height="24px" />
             {loading ? 'Refreshing...' : 'Refresh Stats'}

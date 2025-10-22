@@ -40,6 +40,11 @@
         overflow: hidden;
         z-index: 1;
 
+        &.docs {
+          background: rgb(30, 129, 221);
+          cursor: pointer;
+        }
+
         &.refresh {
           cursor: pointer;
 

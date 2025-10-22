@@ -20,6 +20,7 @@ function App() {
   return (
     <div className={styles.app}>
       <Toaster richColors position="top-center" />
+      {/* <CacheStats token={token!} setToken={setToken} /> */}
       {token ? <CacheStats token={token} setToken={setToken} /> : <Login setToken={setToken} />}
     </div>
   );
