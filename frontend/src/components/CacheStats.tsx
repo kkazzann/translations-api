@@ -5,7 +5,7 @@ import ChartPanel from './ChartPanel';
 import MetricsPanel from './MetricsPanel';
 import type { Summary } from '../types/Summary';
 import type { Stat } from '../types/Stat';
-import { API_BASE_URL } from '../config';
+import axios from 'axios';
 
 const CacheStats: React.FC<{ token: string; setToken: (token: string | null) => void }> = ({
   token,
@@ -28,11 +28,11 @@ const CacheStats: React.FC<{ token: string; setToken: (token: string | null) => 
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/cache-stats`, {
+      const response = await axios.get(`/admin/cache-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const data = await response.json();
+      const data = response.data;
 
       if (response.status === 401 || data.status === 401) {
         setToken(null);
@@ -58,13 +58,13 @@ const CacheStats: React.FC<{ token: string; setToken: (token: string | null) => 
 
       if (key.startsWith('dynamic_')) {
         const sheetTab = key.replace('dynamic_', '');
-        url = `${API_BASE_URL}/dynamic/${sheetTab}/force-refresh`;
+        url = `/dynamic/${sheetTab}/force-refresh`;
       } else {
         const staticKey = key.replace('_all', '');
-        url = `${API_BASE_URL}/static/${staticKey}/force-refresh`;
+        url = `/static/${staticKey}/force-refresh`;
       }
 
-      await fetch(url, {
+      await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

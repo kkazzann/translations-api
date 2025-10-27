@@ -1,4 +1,4 @@
-import { getCacheStats } from '../sheetsUtils';
+import { getCacheStats } from '../utils/cache';
 
 // token store
 const tokens = new Map<string, { createdAt: number; username: string }>();

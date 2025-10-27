@@ -93,6 +93,24 @@ $color: rgb(0, 0, 0);
     overflow: hidden;
     z-index: 1;
 
+    &[disabled] {
+      opacity: 0.6;
+
+      &:after {
+        background-color: color.adjust($color, $alpha: -0.5);
+      }
+
+      &:hover {
+        cursor: not-allowed;
+        color: white;
+        border-color: white;
+
+        &:before {
+          width: 0%;
+        }
+      }
+    }
+
     &:after {
       content: '';
       position: absolute;
