@@ -14,12 +14,10 @@ function setPrewarmDone(boolean: boolean) {
 
 export function checkIfPrewarmIsDone() {
   if (!PREWARM_DONE) {
-    throw new Error(
-      JSON.stringify({
-        status: 500,
-        message: 'Static content is being prewarmed, please try again shortly.',
-      })
-    );
+    const error: any = new Error('Static content is being prewarmed, please try again shortly.');
+    error.code = 503;
+    error.message = 'Service temporarily unavailable. Please try again shortly.';
+    throw error;
   }
 }
 
