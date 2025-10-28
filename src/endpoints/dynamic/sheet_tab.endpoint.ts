@@ -55,7 +55,7 @@ export function registerDynamic(parent: any) {
 
           return {
             code: 200,
-            message: `Cache refreshed for dynamic sheet '${sheet_tab}'`,
+            message: settings.messages.success_refresh,
           };
         },
         makeResponseSchema(settings)
