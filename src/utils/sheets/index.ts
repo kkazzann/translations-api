@@ -3,45 +3,77 @@ import { fetchSheetData } from './fetchSheetData';
 import { logCacheEvent } from '../cache';
 import { cacheRefreshTimes } from '../metrics';
 
-/**
- * Force refresh the static cache for a given sheet.
- * @param sheetName - The name of the sheet to refresh.
- * @param cacheKey - The cache key associated with the sheet.
- * @returns A message indicating the refresh status.
- */
 export async function forceRefreshStaticCache(sheetName: string, cacheKey: string) {
+  let start_time = Date.now();
+
   try {
-    const data = await fetchSheetData('STATIC', sheetName);
-    await cache.set(cacheKey, data);
+    const result = await fetchSheetData('STATIC', sheetName);
+    
+    // Handle error responses from fetchSheetData
+    if (result.code === 404) {
+      const error: any = new Error('No translations found!');
+      error.code = 404;
+      error.message = 'No translations found!';
+      throw error;
+    }
+    
+    if (result.code === 500 || !result.data) {
+      const error: any = new Error('Error 500! Unexpected error occurred.');
+      error.code = 500;
+      error.message = 'Error 500! Unexpected error occurred.';
+      throw error;
+    }
+
+    // Only cache the data, not the Result wrapper
+    await cache.set(cacheKey, result.data);
     cacheRefreshTimes.set(cacheKey, Date.now());
 
     logCacheEvent('🎯 Static cache refreshed', cacheKey);
+    const responseTime = Number((Date.now() - start_time).toFixed(2));
 
     return {
-      message: `Cache refreshed for '${cacheKey}'`,
-      data,
+      executionTime: responseTime,
     };
   } catch (error) {
     logCacheEvent('🚒 Failed to refresh static cache', cacheKey, String(error));
-    throw new Error(`Failed to refresh cache for '${cacheKey}': ${error}`);
+    throw error;
   }
 }
 
 export async function forceRefreshDynamicCache(sheet_tab: string) {
+  let start_time = Date.now();
+
   try {
-    const data = await fetchSheetData('DYNAMIC', sheet_tab);
-    await cache.set(sheet_tab, data);
-    cacheRefreshTimes.set(sheet_tab, Date.now());
+    const result = await fetchSheetData('DYNAMIC', sheet_tab);
+    
+    // Handle error responses from fetchSheetData
+    if (result.code === 404) {
+      const error: any = new Error('No translations found!');
+      error.code = 404;
+      error.message = 'No translations found!';
+      throw error;
+    }
+    
+    if (result.code === 500 || !result.data) {
+      const error: any = new Error('Error 500! Unexpected error occurred.');
+      error.code = 500;
+      error.message = 'Error 500! Unexpected error occurred.';
+      throw error;
+    }
+
+    // Only cache the data, not the Result wrapper
+    await cache.set(`dynamic_${sheet_tab}`, result.data);
+    cacheRefreshTimes.set(`dynamic_${sheet_tab}`, Date.now());
 
     logCacheEvent('🎯 Dynamic cache refreshed', sheet_tab);
+    const responseTime = Number((Date.now() - start_time).toFixed(2));
 
     return {
-      message: `Dynamic cache refreshed for '${sheet_tab}'`,
-      data,
+      executionTime: responseTime,
     };
   } catch (error) {
     logCacheEvent('🚒 Failed to refresh dynamic cache', sheet_tab, String(error));
-    throw new Error(`Failed to refresh cache for '${sheet_tab}': ${error}`);
+    throw error;
   }
 }
 

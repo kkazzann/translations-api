@@ -11,19 +11,21 @@ export const cacheMisses = new Map<string, number>();
 // Track response times
 export const cacheHitResponseTimes: number[] = [];
 export const cacheMissResponseTimes: number[] = [];
-export const MAX_RESPONSE_TIME_SAMPLES = 100; // Keep last 100 samples
+const MAX_RESPONSE_TIME_SAMPLES = 100; // Keep last 100 samples
 
 // Track requests per minute
 export const requestTimestamps: number[] = [];
-export const RPM_WINDOW_MS = 60 * 1000; // 1 minute window
+const RPM_WINDOW_MS = 60 * 1000; // 1 minute window
 
 // Track top requested keys and languages (for static endpoints)
 export const keyRequestCounts = new Map<string, number>();
 export const languageRequestCounts = new Map<string, number>();
 
-// Track recently accessed and updated dynamic sheets
-export const dynamicSheetAccesses = new Map<string, number>(); // sheetTab -> lastAccessTime
-export const dynamicSheetUpdates = new Map<string, number>(); // sheetTab -> lastUpdateTime
+// Track recently accessed and updated sheets
+const dynamicSheetAccesses = new Map<string, number>(); // sheetTab -> lastAccessTime
+const dynamicSheetUpdates = new Map<string, number>(); // sheetTab -> lastUpdateTime
+const staticSheetAccesses = new Map<string, number>(); // cacheKey -> lastAccessTime
+const staticSheetUpdates = new Map<string, number>(); // cacheKey -> lastUpdateTime
 
 export function recordCacheHit(key: string) {
   cacheHits.set(key, (cacheHits.get(key) || 0) + 1);
@@ -61,18 +63,66 @@ export function recordRequest() {
   }
 }
 
-export function recordKeyRequest(key: string) {
-  keyRequestCounts.set(key, (keyRequestCounts.get(key) || 0) + 1);
-}
-
-export function recordLanguageRequest(language: string) {
-  languageRequestCounts.set(language, (languageRequestCounts.get(language) || 0) + 1);
-}
-
 export function recordDynamicSheetAccess(sheetTab: string) {
   dynamicSheetAccesses.set(sheetTab, Date.now());
 }
 
 export function recordDynamicSheetUpdate(sheetTab: string) {
   dynamicSheetUpdates.set(sheetTab, Date.now());
+}
+
+/**
+ * Record access to a static sheet endpoint
+ */
+export function recordStaticSheetAccess(cacheKey: string) {
+  staticSheetAccesses.set(cacheKey, Date.now());
+}
+
+/**
+ * Record update (cache set) for a static sheet
+ */
+export function recordStaticSheetUpdate(cacheKey: string) {
+  staticSheetUpdates.set(cacheKey, Date.now());
+}
+
+/**
+ * Record a request to a specific cache key (for top requested keys stats)
+ */
+export function recordKeyRequest(key: string) {
+  keyRequestCounts.set(key, (keyRequestCounts.get(key) || 0) + 1);
+}
+
+/**
+ * Record a request for a specific language (for top requested languages stats)
+ */
+export function recordLanguageRequest(language: string) {
+  languageRequestCounts.set(language, (languageRequestCounts.get(language) || 0) + 1);
+}
+
+/**
+ * Get recently accessed static sheets (for admin stats)
+ */
+export function getStaticSheetAccesses(): Map<string, number> {
+  return new Map(staticSheetAccesses);
+}
+
+/**
+ * Get recently updated static sheets (for admin stats)
+ */
+export function getStaticSheetUpdates(): Map<string, number> {
+  return new Map(staticSheetUpdates);
+}
+
+/**
+ * Get recently accessed dynamic sheets (for admin stats)
+ */
+export function getDynamicSheetAccesses(): Map<string, number> {
+  return new Map(dynamicSheetAccesses);
+}
+
+/**
+ * Get recently updated dynamic sheets (for admin stats)
+ */
+export function getDynamicSheetUpdates(): Map<string, number> {
+  return new Map(dynamicSheetUpdates);
 }

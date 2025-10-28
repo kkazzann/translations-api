@@ -1,6 +1,10 @@
 import { getStaticTranslations, getDynamicTranslations } from '../../googleAuth';
+import { Result } from '../cache';
 
-export async function fetchSheetData(spreadsheet: string, sheetName: string) {
+export async function fetchSheetData(
+  spreadsheet: string,
+  sheetName: string
+): Promise<Result<Record<string, any>>> {
   let document;
 
   switch (spreadsheet) {
@@ -11,18 +15,19 @@ export async function fetchSheetData(spreadsheet: string, sheetName: string) {
       document = await getDynamicTranslations();
       break;
     default:
-      throw new Error(`Unknown spreadsheet type: ${spreadsheet}`);
+      return {
+        code: 500,
+        message: 'Error 500! Unexpected error occurred.',
+      };
   }
 
   const sheet = document.sheetsByTitle[sheetName];
 
   if (!sheet) {
-    throw new Error(
-      JSON.stringify({
-        status: 500,
-        message: `Sheet '${sheetName}' not found in ${spreadsheet} translations document.`,
-      })
-    );
+    return {
+      code: 404,
+      message: 'No translations found!',
+    };
   }
 
   await sheet.loadHeaderRow();
@@ -34,5 +39,8 @@ export async function fetchSheetData(spreadsheet: string, sheetName: string) {
   for (const header of headers)
     result[header] = rows.map((row) => row.get(header)?.replaceAll('\n', '<br />').trim());
 
-  return result;
+  return {
+    code: 200,
+    data: result,
+  };
 }

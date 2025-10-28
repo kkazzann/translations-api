@@ -1,6 +1,6 @@
 import cache from '../../services/cache';
 import { fetchSheetData } from './fetchSheetData';
-import { filterToAllowedHeaders } from '../data';
+import { filterToAllowedHeaders } from '../filterToAllowedHeaders';
 import {
   cacheRefreshTimes,
   REFRESH_THRESHOLD_MS,
@@ -10,26 +10,30 @@ import {
   recordDynamicSheetUpdate,
   recordRequest,
   recordResponseTime,
+  recordKeyRequest,
 } from '../metrics';
 import { ALLOWED_DYNAMIC_HEADERS, HEADER_TRANSFORMATIONS } from '../../constants';
 import { logCacheEvent } from '../cache';
 
-export async function getDynamicSheetCached(sheetTab: string) {
+interface DynamicSheetResponse {
+  dataOrigin: 'cache' | 'googleAPI';
+  executionTime: number;
+  data: Record<string, any[]>;
+}
+
+export async function getDynamicSheetCached(sheetTab: string): Promise<DynamicSheetResponse> {
   const cacheKey = `dynamic_${sheetTab}`;
   const start_time = Date.now();
 
   try {
     recordRequest(); // Track request for RPM
     recordDynamicSheetAccess(sheetTab); // Track dynamic sheet access
+    recordKeyRequest(cacheKey); // Track key requests for topKeys stats
 
     // Check if we have cached data
     const cachedData = await cache.get<Record<string, any[]>>(cacheKey);
 
     if (cachedData) {
-      recordCacheHit(cacheKey);
-      const responseTime = Date.now() - start_time;
-      recordResponseTime(true, responseTime);
-
       const lastRefreshTime = cacheRefreshTimes.get(cacheKey) || 0;
       const timeSinceRefresh = Date.now() - lastRefreshTime;
 
@@ -49,41 +53,65 @@ export async function getDynamicSheetCached(sheetTab: string) {
         HEADER_TRANSFORMATIONS
       );
 
+      const responseTime = Date.now() - start_time;
+
+      // Only record metrics after successful response
+      recordCacheHit(cacheKey);
+      recordResponseTime(true, responseTime);
+
       return {
-        message: `Cache hit - '${cacheKey}'`,
         dataOrigin: 'cache',
-        executionTime: `${responseTime}ms`,
+        executionTime: responseTime,
         data: filteredData,
       };
     }
 
-    recordCacheMiss(cacheKey);
-    logCacheEvent('🎯 Cache miss', cacheKey, `fetching fresh data from sheet '${sheetTab}'`);
+    // No cache, fetch fresh data
+    const result = await fetchSheetData('DYNAMIC', sheetTab);
 
-    const data = await fetchSheetData('DYNAMIC', sheetTab);
-    await cache.set(cacheKey, data);
+    // Handle error responses from fetchSheetData
+    if (result.code === 404) {
+      const error: any = new Error('No translations found!');
+      error.code = 404;
+      error.message = 'No translations found!';
+      throw error;
+    }
+
+    if (result.code === 500 || !result.data) {
+      const error: any = new Error('Error 500! Unexpected error occurred.');
+      error.code = 500;
+      error.message = 'Error 500! Unexpected error occurred.';
+      throw error;
+    }
+
+    // Only log cache miss after successful fetch
+    logCacheEvent('🎯 Cache miss', cacheKey, `fetched fresh data from sheet '${sheetTab}'`);
+
+    await cache.set(cacheKey, result.data);
     cacheRefreshTimes.set(cacheKey, Date.now());
     recordDynamicSheetUpdate(sheetTab);
-
-    const responseTime = Date.now() - start_time;
-    recordResponseTime(false, responseTime);
 
     logCacheEvent('🎯 New dynamic cache entry', cacheKey);
 
     const filteredData = filterToAllowedHeaders(
-      data as Record<string, any[]>,
+      result.data,
       ALLOWED_DYNAMIC_HEADERS,
       HEADER_TRANSFORMATIONS
     );
 
+    const responseTime = Date.now() - start_time;
+
+    // Only record metrics after successful response
+    recordCacheMiss(cacheKey);
+    recordResponseTime(false, responseTime);
+
     return {
-      message: `New cache entry: '${cacheKey}'`,
       dataOrigin: 'googleAPI',
-      executionTime: `${responseTime}ms`,
+      executionTime: responseTime,
       data: filteredData,
     };
   } catch (err) {
-    logCacheEvent('🚒 Failed to populate dynamic cache', cacheKey, String(err));
+    logCacheEvent('🚒 Failed to fetch dynamic sheet', cacheKey, String(err));
     throw err;
   }
 }
