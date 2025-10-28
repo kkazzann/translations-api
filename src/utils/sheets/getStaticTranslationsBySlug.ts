@@ -52,7 +52,7 @@ export async function getStaticTranslationsBySlug(
     const responseTime = Number((Date.now() - start_time).toFixed(2));
     recordResponseTime(isCacheHit, responseTime); // Record even for 404
     // Don't record language request - invalid language
-    
+
     return {
       code: 404,
       message: `No translations found!`,
@@ -71,7 +71,7 @@ export async function getStaticTranslationsBySlug(
     } else {
       const responseTime = Number((Date.now() - start_time).toFixed(2));
       recordResponseTime(isCacheHit, responseTime); // Record even for 500
-      
+
       return {
         code: 500,
         message: `Error! No array found!`,
@@ -80,17 +80,17 @@ export async function getStaticTranslationsBySlug(
   }
 
   const responseTime = Number((Date.now() - start_time).toFixed(2));
-  
+
   // Record cache hit/miss
   if (isCacheHit) {
     recordCacheHit(cacheKey);
   } else {
     recordCacheMiss(cacheKey);
   }
-  
+
   // Record response time
   recordResponseTime(isCacheHit, responseTime);
-  
+
   logCacheEvent('🎯 Translations fetched', cacheKey, `Execution time: ${responseTime}ms`);
 
   return {

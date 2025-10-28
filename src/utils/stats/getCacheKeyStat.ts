@@ -8,9 +8,9 @@ export async function getCacheKeyStat(key: string, timestamp: number): Promise<C
     const data = await cache.get(key as any);
 
     const size = getCacheSize(data);
-    
+
     const ageMs = Date.now() - timestamp;
-    
+
     const hits = cacheHits.get(key);
     const misses = cacheMisses.get(key);
 

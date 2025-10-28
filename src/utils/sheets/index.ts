@@ -8,7 +8,7 @@ export async function forceRefreshStaticCache(sheetName: string, cacheKey: strin
 
   try {
     const result = await fetchSheetData('STATIC', sheetName);
-    
+
     // Handle error responses from fetchSheetData
     if (result.code === 404) {
       const error: any = new Error('No translations found!');
@@ -16,7 +16,7 @@ export async function forceRefreshStaticCache(sheetName: string, cacheKey: strin
       error.message = 'No translations found!';
       throw error;
     }
-    
+
     if (result.code === 500 || !result.data) {
       const error: any = new Error('Error 500! Unexpected error occurred.');
       error.code = 500;
@@ -45,7 +45,7 @@ export async function forceRefreshDynamicCache(sheet_tab: string) {
 
   try {
     const result = await fetchSheetData('DYNAMIC', sheet_tab);
-    
+
     // Handle error responses from fetchSheetData
     if (result.code === 404) {
       const error: any = new Error('No translations found!');
@@ -53,7 +53,7 @@ export async function forceRefreshDynamicCache(sheet_tab: string) {
       error.message = 'No translations found!';
       throw error;
     }
-    
+
     if (result.code === 500 || !result.data) {
       const error: any = new Error('Error 500! Unexpected error occurred.');
       error.code = 500;

@@ -7,7 +7,7 @@ import cache from '../services/cache';
 export async function refreshCacheInBackground(sheetName: string, cacheKey: string) {
   try {
     const result = await fetchSheetData('STATIC', sheetName);
-    
+
     // Handle error responses from fetchSheetData
     if (result.code === 404 || result.code === 500 || !result.data) {
       console.error(
