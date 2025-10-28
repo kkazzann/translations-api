@@ -1,23 +1,21 @@
 import { Elysia, t } from 'elysia';
-import cors from '@elysiajs/cors';
 import { staticPlugin } from '@elysiajs/static';
-
 import { file } from 'bun';
+
+import cors from '@elysiajs/cors';
+import openapi from '@elysiajs/openapi';
 
 import { prewarmStaticEndpoints } from './services/cache';
 
 import { getLocalLanIp } from './utils/network';
-import { registerOther, registerStatic } from './utils/registerEndpoints';
+import { registerOther } from './utils/registerEndpoints';
 import { registerDynamic } from './endpoints/dynamic/sheet_tab.endpoint';
-import { Result } from './utils/cache';
-import { forceRefreshDynamicCache } from './utils/sheets';
-import { getDynamicSheetCached } from './utils/sheets/getDynamicSheetCached';
-import openapi from '@elysiajs/openapi';
+import { registerAllAtOnce } from './endpoints/static/registerAllAtOnce';
 
 const localIp = getLocalLanIp();
 
-export const app: Elysia = new Elysia({
-  normalize: false,
+export const app = new Elysia({
+  normalize: true,
 })
   // automatic scalar documentation
   .use(
@@ -33,27 +31,28 @@ export const app: Elysia = new Elysia({
   )
 
   .get('/', () => file('./public/index.html'))
-  .use(staticPlugin({
-    prefix: '',
-    assets: './public',
-  }))
+  .use(
+    staticPlugin({
+      prefix: '',
+      assets: './public',
+    })
+  )
 
   .group('/dynamic', (_dynamic) => {
     _dynamic.get(
       '/',
       () => {
         return {
-          message: 'Root endpoint for dynamic content',
+          code: 200,
+          message: 'Visit docs for API usage information @ /docs',
         };
       },
       {
-        schema: {
-          tags: ['Dynamic'],
-          response: {
-            200: t.Object({
-              message: t.String(),
-            }),
-          },
+        tags: ['Dynamic'],
+        response: {
+          200: t.Object({
+            message: t.String(t.Literal('Visit docs for API usage information @ /docs')),
+          }),
         },
       }
     );
@@ -68,23 +67,35 @@ export const app: Elysia = new Elysia({
       '/',
       () => {
         return {
-          message: 'Root endpoint for static content',
-        } as const;
+          code: 200,
+          message: 'Visit docs for API usage information @ /docs',
+        };
       },
       {
         tags: ['Static'],
         response: {
           200: t.Object({
-            message: t.Literal('Root endpoint for static content'),
+            message: t.String(t.Literal('Visit docs for API usage information @ /docs')),
           }),
         },
       }
     );
 
-    registerStatic(_static);
+    registerAllAtOnce(_static);
     // register static groups from separate modules
 
     return _static;
+  })
+
+  .onError(({ code, set }) => {
+    if (code === 'NOT_FOUND') {
+      set.status = 404;
+      return {
+        code: 404,
+        message: 'Endpoint not found',
+        details: 'Please refer to /docs for the list of available endpoints.',
+      };
+    }
   });
 
 registerOther(app);
