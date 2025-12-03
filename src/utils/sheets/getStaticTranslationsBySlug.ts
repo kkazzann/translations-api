@@ -19,9 +19,8 @@ export async function getStaticTranslationsBySlug(
   const start_time = Date.now();
   checkIfPrewarmIsDone();
 
-  // Record metrics: track which keys are being requested
+  // Record metrics: track request arrival (RPM)
   recordRequest(); // Track request for RPM
-  recordKeyRequest(cacheKey);
 
   const cachedData = await cache.get(cacheKey);
   const isCacheHit = cachedData !== undefined;
@@ -82,6 +81,8 @@ export async function getStaticTranslationsBySlug(
   const responseTime = Number((Date.now() - start_time).toFixed(2));
 
   // Record cache hit/miss
+  // Only record successful query in top/recent metrics
+  recordKeyRequest(cacheKey);
   if (isCacheHit) {
     recordCacheHit(cacheKey);
   } else {

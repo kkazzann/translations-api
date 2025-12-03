@@ -16,6 +16,9 @@ const MAX_RESPONSE_TIME_SAMPLES = 100; // Keep last 100 samples
 // Track requests per minute
 export const requestTimestamps: number[] = [];
 const RPM_WINDOW_MS = 60 * 1000; // 1 minute window
+// Long-term request history for stats (used to build RPM history and recentQueries)
+export const requestHistory: Array<{ name?: string; time: number }> = [];
+const MAX_REQUEST_HISTORY = 10000; // cap to avoid unbounded growth
 
 // Track top requested keys and languages (for static endpoints)
 export const keyRequestCounts = new Map<string, number>();
@@ -88,8 +91,21 @@ export function recordStaticSheetUpdate(cacheKey: string) {
 /**
  * Record a request to a specific cache key (for top requested keys stats)
  */
+import { insertRequest } from './db';
+
 export function recordKeyRequest(key: string) {
   keyRequestCounts.set(key, (keyRequestCounts.get(key) || 0) + 1);
+  const now = Date.now();
+  // add to long-term request history (in-memory)
+  requestHistory.push({ name: key, time: now });
+  if (requestHistory.length > MAX_REQUEST_HISTORY) requestHistory.shift();
+
+  // persist to sqlite if available (non-blocking)
+  try {
+    insertRequest(key, now);
+  } catch (err) {
+    // ignore DB errors
+  }
 }
 
 /**

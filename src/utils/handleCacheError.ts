@@ -1,5 +1,5 @@
-import { Result } from '../../types/cache/Result';
-import { formatTime } from '../time';
+import { Result } from '../types/cache/Result';
+import { formatTime } from './time';
 
 export function handleCacheError(cacheKey: string, error: any): Result<null> {
   const timestamp = formatTime(new Date());

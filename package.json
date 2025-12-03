@@ -16,7 +16,8 @@
     "cache-manager": "^7.2.4",
     "elysia": "latest",
     "google-auth-library": "^10.4.1",
-    "google-spreadsheet": "^5.0.2"
+    "google-spreadsheet": "^5.0.2",
+    "sqlite": "^5.1.1"
   },
   "devDependencies": {
     "bun-types": "latest",

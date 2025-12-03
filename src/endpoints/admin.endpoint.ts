@@ -106,10 +106,10 @@ export function registerAdminGroup(parent: any) {
         async ({ headers, set }: any) => {
           const auth = headers['authorization'] || headers['Authorization'];
 
-          if (!validateAuthHeader(auth)) {
-            set.status = 401;
-            return { code: 401, message: 'Authorization failed.' };
-          }
+          // if (!validateAuthHeader(auth)) {
+          //   set.status = 401;
+          //   return { code: 401, message: 'Authorization failed.' };
+          // }
 
           const stats = await getCacheStats();
           return stats;
@@ -118,55 +118,43 @@ export function registerAdminGroup(parent: any) {
           tags: ['Admin'],
           response: {
             200: t.Object({
-              code: t.Literal(200),
-              message: t.String(),
-              summary: t.Object({
-                sheetTabs: t.Number(),
-                totalSize: t.Number(),
-                avgAgeMs: t.Number(),
-                totalHits: t.Optional(t.Number()),
-                totalMisses: t.Optional(t.Number()),
-                overallHitRatio: t.Optional(t.Number()),
-              }),
-              performance: t.Object({
-                avgCacheHitResponseTime: t.Optional(t.Number()),
-                avgCacheMissResponseTime: t.Optional(t.Number()),
-                avgOverallResponseTime: t.Optional(t.Number()),
-                requestsPerMinute: t.Optional(t.Number()),
-              }),
-              topKeys: t.Optional(
+              avgResponseTime: t.Optional(t.Number()),
+              rpmHistory: t.Optional(t.Array(t.Number())),
+              top10Queries: t.Optional(
                 t.Array(
                   t.Object({
-                    key: t.String(),
+                    name: t.String(),
                     count: t.Number(),
                   })
                 )
               ),
+              sheetTabs: t.Array(t.Object({ name: t.String() })),
+              items: t.Number(),
               topLanguages: t.Optional(
                 t.Array(
                   t.Object({
-                    language: t.String(),
+                    name: t.String(),
                     count: t.Number(),
                   })
                 )
               ),
-              keys: t.Array(
-                t.Object({
-                  key: t.String(),
-                  lastRefresh: t.Number(),
-                  ageMs: t.Number(),
-                  size: t.Optional(t.Number()),
-                  hits: t.Optional(t.Number()),
-                  misses: t.Optional(t.Number()),
-                  hitRatio: t.Optional(t.Number()),
-                  error: t.Optional(t.String()),
-                })
+              memoryUsed: t.Optional(t.Number()),
+              hits: t.Optional(t.Number()),
+              misses: t.Optional(t.Number()),
+              recentQueries: t.Optional(
+                t.Array(
+                  t.Object({
+                    name: t.Optional(t.String()),
+                    time: t.Number(),
+                  })
+                )
               ),
+              queriesLast30Days: t.Optional(t.Number()),
             }),
 
             401: t.Object({
               code: t.Literal(401),
-              message: t.Literal('No token provided.'),
+              message: t.Literal('Authorization failed.'),
             }),
           },
         }

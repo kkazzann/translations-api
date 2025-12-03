@@ -26,9 +26,8 @@ export async function getDynamicSheetCached(sheetTab: string): Promise<DynamicSh
   const start_time = Date.now();
 
   try {
-    recordRequest(); // Track request for RPM
-    recordDynamicSheetAccess(sheetTab); // Track dynamic sheet access
-    recordKeyRequest(cacheKey); // Track key requests for topKeys stats
+  recordRequest(); // Track request for RPM
+  recordDynamicSheetAccess(sheetTab); // Track dynamic sheet access
 
     // Check if we have cached data
     const cachedData = await cache.get<Record<string, any[]>>(cacheKey);
@@ -55,9 +54,11 @@ export async function getDynamicSheetCached(sheetTab: string): Promise<DynamicSh
 
       const responseTime = Date.now() - start_time;
 
-      // Only record metrics after successful response
-      recordCacheHit(cacheKey);
-      recordResponseTime(true, responseTime);
+  // Only record metrics after successful response
+  // Record as successful query for top/recent metrics
+  recordKeyRequest(cacheKey);
+  recordCacheHit(cacheKey);
+  recordResponseTime(true, responseTime);
 
       return {
         dataOrigin: 'cache',
@@ -101,9 +102,11 @@ export async function getDynamicSheetCached(sheetTab: string): Promise<DynamicSh
 
     const responseTime = Date.now() - start_time;
 
-    // Only record metrics after successful response
-    recordCacheMiss(cacheKey);
-    recordResponseTime(false, responseTime);
+  // Only record metrics after successful response
+  // Record as successful query for top/recent metrics
+  recordKeyRequest(cacheKey);
+  recordCacheMiss(cacheKey);
+  recordResponseTime(false, responseTime);
 
     return {
       dataOrigin: 'googleAPI',

@@ -1,58 +1,144 @@
+import cache from '../../services/cache';
 import {
   cacheRefreshTimes,
+  cacheHits,
+  cacheMisses,
   cacheHitResponseTimes,
   cacheMissResponseTimes,
-  requestTimestamps,
   keyRequestCounts,
   languageRequestCounts,
+  requestHistory,
 } from '../metrics';
-import { getAverage } from './math/getAverage';
-import { getHitRatio } from './math/getHitRatio';
-import { getCacheKeyStat } from './getCacheKeyStat';
-import { getTopEntries } from './getTopEntries';
+import {
+  getTopQueriesLast30Days,
+  getRpmHistoryMinutes,
+  getRecentQueries,
+  getQueriesCountLast30Days,
+} from '../db';
+import { getCacheSize } from './getCacheSize';
 
-export async function getCacheStats(): Promise<CacheStats> {
-  // Gather stats for all cache keys
-  const keyStats = await Promise.all(
-    Array.from(cacheRefreshTimes.entries()).map(([key, ts]) => getCacheKeyStat(key, ts))
-  );
+export interface CacheStatsResponse {
+  avgResponseTime?: number; // in milliseconds
+  rpmHistory?: number[]; // requests per minute, data from every 1 hour (60 entries)
+  top10Queries?: { name: string; count: number }[]; // top 10 queries with their request counts
+  sheetTabs: { name: string }[]; // list of sheet tab names
+  items: number;
+  topLanguages?: { name: string; count: number }[];
+  memoryUsed?: number;
+  hits?: number;
+  misses?: number;
+  recentQueries?: { name?: string; time: number }[]; // time in ms
+  queriesLast30Days?: number;
+}
 
-  // Calculate summary metrics
-  const sheetTabs = keyStats.length;
-  const items = keyStats.reduce((sum, stat) => sum + (stat.size > 0 ? stat.size : 0), 0);
+function average(numbers: number[]): number | undefined {
+  if (!numbers || numbers.length === 0) return undefined;
+  return numbers.reduce((a, b) => a + b, 0) / numbers.length;
+}
 
-  const totalAgeMilis = keyStats.reduce((sum, stat) => sum + stat.ageMs, 0);
+export async function getCacheStats(): Promise<CacheStatsResponse> {
+  const now = Date.now();
 
-  const totalHits = keyStats.reduce((sum, stat) => sum + (stat.hits || 0), 0) || undefined;
-  const totalMisses = keyStats.reduce((sum, stat) => sum + (stat.misses || 0), 0) || undefined;
+  // sheet tabs list from cacheRefreshTimes keys
+  const sheetTabs = Array.from(cacheRefreshTimes.keys()).map((k) => ({ name: k }));
 
-  // Calculate performance metrics
-  const avgCacheHitResponseTime = getAverage(cacheHitResponseTimes);
-  const avgCacheMissResponseTime = getAverage(cacheMissResponseTimes);
-  const avgOverallResponseTime = getAverage([...cacheHitResponseTimes, ...cacheMissResponseTimes]);
+  // total items = sum of sizes of cached entries
+  let items = 0;
+  for (const key of cacheRefreshTimes.keys()) {
+    try {
+      const data = await cache.get(key as any);
+      items += getCacheSize(data);
+    } catch (err) {
+      // ignore errors per-key
+    }
+  }
+
+  // avg response time across hits and misses
+  const combined = [...cacheHitResponseTimes, ...cacheMissResponseTimes];
+  const avgResponseTime = average(combined);
+
+  // rpmHistory: requests-per-minute for the last hour (60 entries). Prefer persisted DB, fallback to in-memory.
+  const minutes = 60;
+  let rpmHistory: number[] = [];
+  try {
+    rpmHistory = getRpmHistoryMinutes(minutes);
+  } catch (err) {
+    rpmHistory = [];
+  }
+  if (!rpmHistory || rpmHistory.length === 0) {
+    const oneMin = 60 * 1000;
+    rpmHistory = new Array(minutes).fill(0);
+    const cutoff = now - minutes * oneMin;
+    for (const entry of requestHistory) {
+      if (entry.time < cutoff) continue;
+      const minuteIndex = Math.floor((entry.time - cutoff) / oneMin);
+      if (minuteIndex >= 0 && minuteIndex < minutes) rpmHistory[minuteIndex]++;
+    }
+  }
+
+  // top10 queries
+  // top10 queries - prefer DB if available
+  let top10Queries = [] as { name: string; count: number }[];
+  try {
+    top10Queries = getTopQueriesLast30Days(10);
+  } catch (err) {
+    top10Queries = [];
+  }
+  if (!top10Queries || top10Queries.length === 0) {
+    top10Queries = Array.from(keyRequestCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+  }
+
+  // top languages
+  const topLanguages = Array.from(languageRequestCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, count]) => ({ name, count }));
+
+  // memory used (rss) in bytes
+  const memoryUsed =
+    typeof process !== 'undefined' && process.memoryUsage ? process.memoryUsage().rss : undefined;
+
+  // hits & misses totals
+  const hits = Array.from(cacheHits.values()).reduce((a, b) => a + b, 0) || undefined;
+  const misses = Array.from(cacheMisses.values()).reduce((a, b) => a + b, 0) || undefined;
+
+  // recentQueries - prefer DB persisted list
+  let recentQueries = [] as { name?: string; time: number }[];
+  try {
+    recentQueries = getRecentQueries(50);
+  } catch (err) {
+    recentQueries = [];
+  }
+  if (!recentQueries || recentQueries.length === 0) {
+    recentQueries = requestHistory.slice(-50).map((r) => ({ name: r.name, time: r.time }));
+  }
+
+  // queries in last 30 days
+  let queriesLast30Days = 0;
+  try {
+    queriesLast30Days = getQueriesCountLast30Days();
+  } catch (err) {
+    queriesLast30Days = 0;
+  }
+  if (!queriesLast30Days) {
+    const day30 = 30 * 24 * 60 * 60 * 1000;
+    queriesLast30Days = requestHistory.filter((r) => r.time >= now - day30).length;
+  }
 
   return {
-    code: 200,
-    message: 'Cache statistics retrieved successfully.',
-    summary: {
-      sheetTabs,
-      totalSize: items,
-      avgAgeMs: sheetTabs > 0 ? Math.round(totalAgeMilis / sheetTabs) : 0,
-      totalHits,
-      totalMisses,
-      overallHitRatio: totalHits && totalMisses ? getHitRatio(totalHits, totalMisses) : undefined,
-    },
-    performance: {
-      avgCacheHitResponseTime,
-      avgCacheMissResponseTime,
-      avgOverallResponseTime,
-      requestsPerMinute: requestTimestamps.length || undefined,
-    },
-    topKeys: getTopEntries(keyRequestCounts, 10, (key, count) => ({ key, count })),
-    topLanguages: getTopEntries(languageRequestCounts, 10, (language, count) => ({
-      language,
-      count,
-    })),
-    keys: keyStats.sort((a, b) => b.size - a.size), // Sort by size descending
+    avgResponseTime,
+    rpmHistory,
+    top10Queries: top10Queries.length ? top10Queries : undefined,
+    sheetTabs,
+    items,
+    topLanguages: topLanguages.length ? topLanguages : undefined,
+    memoryUsed,
+    hits,
+    misses,
+    recentQueries,
+    queriesLast30Days,
   };
 }
