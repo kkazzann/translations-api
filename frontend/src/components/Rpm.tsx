@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import styles from './styles/Rpm.module.scss';
-import statTileStyles from './styles/StatTile.module.scss';
 
 type Props = {
   loading: boolean;
