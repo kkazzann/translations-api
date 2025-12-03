@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Icon } from '@iconify-icon/react';
-import styles from './Login.module.scss';
+import styles from './styles/Login.module.scss';
 import { toast } from 'sonner';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-const Login: React.FC<{ setToken: (token: string) => void }> = ({ setToken }) => {
+const Login: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname || '/statistics';
+  const { setToken } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,13 +24,14 @@ const Login: React.FC<{ setToken: (token: string) => void }> = ({ setToken }) =>
     setError('');
 
     try {
-      const response = await axios.post(`/admin/login`, {
+      const response = await axios.post(`http://localhost:3000/admin/login`, {
         username,
         password,
       });
 
       if (response.data.token) {
         setToken(response.data.token);
+        navigate(from, { replace: true });
       } else {
         setError('Invalid credentials');
       }

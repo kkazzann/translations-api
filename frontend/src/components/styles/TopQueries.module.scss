@@ -1,0 +1,81 @@
+.topQueries {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  overflow: hidden;
+  grid-row: span 4;
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  .title {
+    font-size: 16px;
+  }
+
+  .skeleton {
+    flex: 1;
+    width: 100%;
+    background: lightgray;
+    text-align: center;
+    display: grid;
+    place-items: center;
+    height: 100%;
+  }
+
+  .queriesContainer {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .query {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 8px 12px;
+    font-size: 12px;
+
+    .name {
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .requests {
+      white-space: nowrap;
+    }
+  }
+
+  .monthlyQueries {
+    background-color: #ff2f00;
+    color: #f6e7e6;
+    padding: 24px;
+    border-radius: 16px;
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    justify-content: space-between;
+    aspect-ratio: 2/1;
+
+    .title {
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    .separator {
+      flex: 1;
+    }
+
+    .value {
+      font-size: 24px;
+      font-weight: 500;
+    }
+    .action {
+      font-size: 12px;
+      cursor: pointer;
+    }
+  }
+}

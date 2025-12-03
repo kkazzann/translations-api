@@ -1,0 +1,7 @@
+// Top-level grid for the Statistics page. Specific sections have their own modules.
+.main {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 20px;
+}

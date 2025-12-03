@@ -1,28 +1,51 @@
-import { useState, useEffect } from 'react';
-import Login from './components/Login';
-import CacheStats from './components/CacheStats';
-import styles from './App.module.scss';
 import { Toaster } from 'sonner';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import styles from './App.module.scss';
+
+import Login from './components/Login';
+import Navigation from './components/Navigation';
+import RequireAuth from './components/RequireAuth';
+import Statistics from './components/Statistics';
+import Vault from './components/Vault';
+import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('token');
-  });
-
-  useEffect(() => {
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
-  }, [token]);
-
   return (
-    <div className={styles.app}>
-      <Toaster richColors position="top-center" />
-      {/* <CacheStats token={token!} setToken={setToken} /> */}
-      {token ? <CacheStats token={token} setToken={setToken} /> : <Login setToken={setToken} />}
-    </div>
+    <AuthProvider>
+      <div className={styles.app}>
+        <div className={styles.wrapper}>
+          <Toaster richColors position="top-center" />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+
+              {/* Protected routes */}
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    {/* Layout with navigation shown on protected pages */}
+                    {/* <div> */}
+                    <div className={styles.container}>
+                      <Navigation />
+                      <Outlet />
+                    </div>
+                    {/* </div> */}
+                  </RequireAuth>
+                }
+              >
+                  <Route index element={<Navigate to="/statistics" replace />} />
+                  <Route path="statistics" element={<Statistics />} />
+                  <Route path="vault" element={<Vault />} />
+              </Route>
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </div>
+      </div>
+    </AuthProvider>
   );
 }
 

@@ -1,0 +1,85 @@
+.statTile {
+  border-radius: 16px;
+  padding: 24px;
+
+  background-color: #f6e7e6;
+  color: #ff2f00;
+  text-shadow: 1px 0px 0px rgba(0, 0, 0, 0.25);
+
+  position: relative;
+
+  max-height: 200px;
+
+  display: flex;
+  flex-direction: column;
+
+  transition: all 0.25s ease-in-out;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 16px #f6e7e680;
+  }
+
+  &.highlighted {
+    background-color: #ff2f00;
+
+    color: #f6e7e6;
+    text-shadow: 1px 0px 0px rgba(0, 0, 0, 0.25);
+
+    &:hover {
+      box-shadow: 0 8px 16px #ff2f0083;
+    }
+  }
+
+  .title {
+    font-size: 16px;
+    font-weight: 400;
+  }
+
+  .value {
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  .separator {
+    flex: 1;
+  }
+
+  .action {
+    font-size: 12px;
+
+    cursor: pointer;
+  }
+}
+/* skeleton variants for loading state */
+.skeletonTitle,
+.skeletonValue,
+.skeletonAction {
+  /* Use a neutral, slightly dark gradient so skeletons are visible
+     on both light (default) and dark/highlighted backgrounds. */
+  background-color: rgba(0, 0, 0, 0.06);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 0%,
+    rgba(0, 0, 0, 0.12) 50%,
+    rgba(0, 0, 0, 0.06) 100%
+  );
+  border-radius: 8px;
+}
+
+.skeletonTitle {
+  height: 16px;
+  width: 40%;
+  // margin-bottom: 8px;
+}
+
+.skeletonValue {
+  height: 24px;
+  width: max(60%, 60px);
+  // margin-bottom: 12px;
+}
+
+.skeletonAction {
+  width: 15%;
+  height: 12px;
+}

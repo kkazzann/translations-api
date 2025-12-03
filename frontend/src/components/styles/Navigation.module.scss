@@ -1,0 +1,41 @@
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 20px;
+  align-items: center;
+
+  background: white;
+  padding: 12px 24px;
+  border-radius: 16px;
+
+  .itemsOnRight {
+    display: flex;
+    gap: 12px;
+
+    button {
+      cursor: pointer;
+
+      white-space: nowrap;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+
+      background: transparent;
+      color: black;
+
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &.docs {
+        background-color: #750000;
+        color: #ffffff;
+      }
+
+      &.logout {
+        color: #750000;
+      }
+    }
+  }
+}
