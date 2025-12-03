@@ -40,11 +40,12 @@ export async function forceRefreshStaticCache(sheetName: string, cacheKey: strin
   }
 }
 
-export async function forceRefreshDynamicCache(sheet_tab: string) {
+export async function forceRefreshDynamicCache(sheet_tab: string, year?: string) {
   let start_time = Date.now();
+  const y = year || '2025';
 
   try {
-    const result = await fetchSheetData('DYNAMIC', sheet_tab);
+    const result = await fetchSheetData('DYNAMIC', sheet_tab, y);
 
     // Handle error responses from fetchSheetData
     if (result.code === 404) {
@@ -62,10 +63,10 @@ export async function forceRefreshDynamicCache(sheet_tab: string) {
     }
 
     // Only cache the data, not the Result wrapper
-    await cache.set(`dynamic_${sheet_tab}`, result.data);
-    cacheRefreshTimes.set(`dynamic_${sheet_tab}`, Date.now());
+    await cache.set(`dynamic_${y}_${sheet_tab}`, result.data);
+    cacheRefreshTimes.set(`dynamic_${y}_${sheet_tab}`, Date.now());
 
-    logCacheEvent('🎯 Dynamic cache refreshed', sheet_tab);
+    logCacheEvent('🎯 Dynamic cache refreshed', `${y}_${sheet_tab}`);
     const responseTime = Number((Date.now() - start_time).toFixed(2));
 
     return {

@@ -21,13 +21,14 @@ interface DynamicSheetResponse {
   data: Record<string, any[]>;
 }
 
-export async function getDynamicSheetCached(sheetTab: string): Promise<DynamicSheetResponse> {
-  const cacheKey = `dynamic_${sheetTab}`;
+export async function getDynamicSheetCached(sheetTab: string, year?: string): Promise<DynamicSheetResponse> {
+  const y = year || '2025';
+  const cacheKey = `dynamic_${y}_${sheetTab}`;
   const start_time = Date.now();
 
   try {
   recordRequest(); // Track request for RPM
-  recordDynamicSheetAccess(sheetTab); // Track dynamic sheet access
+  recordDynamicSheetAccess(`${y}_${sheetTab}`); // Track dynamic sheet access (include year)
 
     // Check if we have cached data
     const cachedData = await cache.get<Record<string, any[]>>(cacheKey);
@@ -68,7 +69,7 @@ export async function getDynamicSheetCached(sheetTab: string): Promise<DynamicSh
     }
 
     // No cache, fetch fresh data
-    const result = await fetchSheetData('DYNAMIC', sheetTab);
+    const result = await fetchSheetData('DYNAMIC', sheetTab, y);
 
     // Handle error responses from fetchSheetData
     if (result.code === 404) {
@@ -90,7 +91,7 @@ export async function getDynamicSheetCached(sheetTab: string): Promise<DynamicSh
 
     await cache.set(cacheKey, result.data);
     cacheRefreshTimes.set(cacheKey, Date.now());
-    recordDynamicSheetUpdate(sheetTab);
+    recordDynamicSheetUpdate(`${y}_${sheetTab}`);
 
     logCacheEvent('🎯 New dynamic cache entry', cacheKey);
 

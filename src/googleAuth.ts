@@ -13,17 +13,24 @@ const STATIC_TRANSLATIONS = new GoogleSpreadsheet(
   xlsxAccount
 );
 
-const DYNAMIC_TRANSLATIONS = new GoogleSpreadsheet(
-  '1djnjfhsFX4-Fghv5cQU_UNYaEhVL9Ban4VUqIfHsWdc',
-  xlsxAccount
-);
+// Dynamic spreadsheets per year
+const DYNAMIC_SHEETS: Record<string, GoogleSpreadsheet> = {
+  '2025': new GoogleSpreadsheet('1djnjfhsFX4-Fghv5cQU_UNYaEhVL9Ban4VUqIfHsWdc', xlsxAccount),
+  '2026': new GoogleSpreadsheet('1RcsQspit0B3b3xX1NwZ9RWnUzZrkoVDULu2cnPMZ04U', xlsxAccount),
+};
 
 export async function getStaticTranslations() {
   await STATIC_TRANSLATIONS.loadInfo();
   return STATIC_TRANSLATIONS;
 }
 
-export async function getDynamicTranslations() {
-  await DYNAMIC_TRANSLATIONS.loadInfo();
-  return DYNAMIC_TRANSLATIONS;
+/**
+ * Return a GoogleSpreadsheet instance for the requested dynamic year.
+ * Defaults to '2025' when year is not provided or unknown.
+ */
+export async function getDynamicTranslations(year?: string) {
+  const y = year && DYNAMIC_SHEETS[year] ? year : '2025';
+  const doc = DYNAMIC_SHEETS[y];
+  await doc.loadInfo();
+  return doc;
 }

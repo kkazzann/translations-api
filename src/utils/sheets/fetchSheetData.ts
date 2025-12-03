@@ -1,9 +1,10 @@
 import { getStaticTranslations, getDynamicTranslations } from '../../googleAuth';
-import { Result } from '../cache';
+import type { Result } from '../../types/cache/Result';
 
 export async function fetchSheetData(
   spreadsheet: string,
-  sheetName: string
+  sheetName: string,
+  year?: string
 ): Promise<Result<Record<string, any>>> {
   let document;
 
@@ -12,7 +13,7 @@ export async function fetchSheetData(
       document = await getStaticTranslations();
       break;
     case 'DYNAMIC':
-      document = await getDynamicTranslations();
+      document = await getDynamicTranslations(year);
       break;
     default:
       return {

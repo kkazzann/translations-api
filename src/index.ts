@@ -39,7 +39,7 @@ export const app = new Elysia({
     })
   )
 
-  .group('/dynamic', (_dynamic) => {
+  .group('/dynamic/:year', (_dynamic) => {
     _dynamic.get(
       '/',
       () => {

@@ -18,9 +18,9 @@ export function registerDynamic(parent: any) {
     _sheet_tab
       .get(
         '/',
-        async ({ params: { sheet_tab }, set }: any): Promise<Result<any>> => {
+        async ({ params: { sheet_tab, year }, set }: any): Promise<Result<any>> => {
           try {
-            const res = await getDynamicSheetCached(sheet_tab);
+            const res = await getDynamicSheetCached(sheet_tab, year);
 
             return {
               code: 200,
@@ -50,12 +50,13 @@ export function registerDynamic(parent: any) {
 
       .get(
         '/force-refresh',
-        async ({ params: { sheet_tab } }: any): Promise<Result<null>> => {
-          await forceRefreshDynamicCache(sheet_tab);
+        async ({ params: { sheet_tab, year } }: any): Promise<Result<null>> => {
+          const res = await forceRefreshDynamicCache(sheet_tab, year);
 
           return {
             code: 200,
             message: settings.messages.success_refresh,
+            executionTime: res?.executionTime,
           };
         },
         makeResponseSchema(settings)
@@ -63,9 +64,9 @@ export function registerDynamic(parent: any) {
 
       .get(
         '/:range',
-        async ({ params: { sheet_tab, range }, set }: any): Promise<Result<any>> => {
+        async ({ params: { sheet_tab, range, year }, set }: any): Promise<Result<any>> => {
           try {
-            const envelope = await getDynamicSheetCached(sheet_tab);
+            const envelope = await getDynamicSheetCached(sheet_tab, year);
             const sheet = envelope.data;
 
             const isRangeValid = /^\d+:\d+$|^\d+$/.test(range);
