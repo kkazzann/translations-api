@@ -28,6 +28,10 @@ export const app = new Elysia({
   .use(
     cors({
       origin: '*',
+      methods: ['GET', 'POST', 'OPTIONS'],
+      allowedHeaders: ['*'],
+      maxAge: 86400,
+      preflight: true,
     })
   )
 
