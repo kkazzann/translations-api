@@ -3,7 +3,7 @@ import { getMilisFromHours, formatTime } from '../utils/time';
 import { getDataFromStaticSheet } from '../utils/sheets/getDataFromStaticSheet';
 
 const cache = createCache({
-  ttl: getMilisFromHours(3), // Keep data for 3 hours max (hard expiry)
+  ttl: 5 * 60 * 1000, // Keep data for 5 minutes max (hard expiry)
 });
 
 let PREWARM_DONE = false;
