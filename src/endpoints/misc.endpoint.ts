@@ -1,22 +1,39 @@
 import { getTabNameById } from '../utils/sheets';
+import { resolveYearFromSpreadsheetId } from '../googleAuth';
 
 export function registerMiscGroup(parent: any) {
   parent.group('/misc', (_misc: any) =>
-    _misc.get('/resolveTabName', async ({ query }: any) => {
-      const { id } = query || {};
+    _misc
 
-      if (!id) {
-        return { status: 400, message: 'id is required' };
-      }
+      // New route: resolve year from spreadsheetId and return tab name by gid
+      .get('/resolveTabName/:spreadsheetId/:gid', async ({ params, set }: any) => {
+        const { spreadsheetId, gid } = params || {};
 
-      const tab = await getTabNameById(id);
+        if (!spreadsheetId || !gid) {
+          set.status = 400;
+          return { code: 400, message: 'spreadsheetId and gid are required' };
+        }
 
-      if (!tab) {
-        return { status: 404, message: 'tab not found' };
-      }
+        const year = resolveYearFromSpreadsheetId(spreadsheetId);
+        if (!year) {
+          set.status = 404;
+          return { code: 404, message: 'spreadsheetId not found' };
+        }
 
-      return { message: 'ok', tab };
-    })
+        const gidNum = parseInt(gid, 10);
+        if (Number.isNaN(gidNum)) {
+          set.status = 400;
+          return { code: 400, message: 'gid must be a number' };
+        }
+
+        const tab = await getTabNameById(gidNum, year);
+        if (!tab) {
+          set.status = 404;
+          return { code: 404, message: 'tab not found' };
+        }
+
+        return { code: 200, message: 'ok', year, tab };
+      })
   );
 
   return parent;

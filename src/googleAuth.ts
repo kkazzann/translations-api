@@ -19,6 +19,18 @@ const DYNAMIC_SHEETS: Record<string, GoogleSpreadsheet> = {
   '2026': new GoogleSpreadsheet('1RcsQspit0B3b3xX1NwZ9RWnUzZrkoVDULu2cnPMZ04U', xlsxAccount),
 };
 
+/**
+ * Resolve a year string (e.g. '2026') from a spreadsheetId.
+ * Returns undefined when not found.
+ */
+export function resolveYearFromSpreadsheetId(spreadsheetId: string): string | undefined {
+  for (const [year, doc] of Object.entries(DYNAMIC_SHEETS)) {
+    // GoogleSpreadsheet stores the id passed in the constructor as `spreadsheetId`
+    if ((doc as any).spreadsheetId === spreadsheetId) return year;
+  }
+  return undefined;
+}
+
 export async function getStaticTranslations() {
   await STATIC_TRANSLATIONS.loadInfo();
   return STATIC_TRANSLATIONS;
